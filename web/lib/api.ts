@@ -49,7 +49,8 @@ export type GoalDetail = {
   goal: Goal
   contributions: Contribution[]
   thanks: Thanks[]
-  reconciliation: Reconciliation
+  /** null when the API could not read the public RPC; the receipts still stand */
+  reconciliation: Reconciliation | null
   stats: { contributors_count: number; contributions_count: number; average_luna: string; last_contribution_at: string | null }
 }
 

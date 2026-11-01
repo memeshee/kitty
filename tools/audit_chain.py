@@ -123,8 +123,9 @@ def main() -> int:
 
     ids = [g.strip() for g in args.goals.split(",") if g.strip()]
     if not ids and args.recent:
-        listing = http_json(f"{args.api.rstrip('/')}/v1/goals?recent={args.recent}")
-        ids = [g["id"] for g in listing.get("goals", [])]
+        # The API lists an owner's goals, or the newest ones when no owner is given.
+        listing = http_json(f"{args.api.rstrip('/')}/v1/goals")
+        ids = [g["id"] for g in listing.get("goals", [])][: args.recent]
     if not ids:
         print("Nothing to audit: pass --goals id1,id2 or --recent N", file=sys.stderr)
         return 2

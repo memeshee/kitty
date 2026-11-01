@@ -19,7 +19,7 @@ A contribution is only counted if the on-chain memo decodes to a string starting
 kitty:<goal_id>
 ```
 
-`goal_id` is 8 characters from the alphabet `0123456789abcdefghjkmnpqrstuvwxyz` (no `i`, `l`, `o`, `u`). The whole memo is 14 bytes, far inside the 64 byte cap.
+`goal_id` is 8 characters from the alphabet `0123456789abcdefghjkmnpqrstvwxyz` (no `i`, `l`, `o`, `u`). The whole memo is 14 bytes, far inside the 64 byte cap.
 
 ## Endpoints
 

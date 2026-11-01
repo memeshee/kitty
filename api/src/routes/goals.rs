@@ -383,4 +383,29 @@ mod tests {
             "three page loads must not be three RPC reads"
         );
     }
+
+    #[tokio::test]
+    async fn a_goal_page_still_renders_when_the_chain_is_down() {
+        let db_url = crate::test_support::temp_db_url("goal_chain_down");
+        let pool = crate::test_support::test_pool(&db_url).await;
+        let cfg = crate::config::Config {
+            database_url: db_url,
+            rpc_url: "http://127.0.0.1:1".to_string(),
+            ..crate::config::Config::default()
+        };
+        let chain = crate::chain::ChainClient::new(&cfg).expect("client");
+        let app = crate::routes::app(crate::state::AppState::new(pool, chain, cfg));
+
+        let goal = create_goal(&app, TEST_OWNER, TEST_TOKEN).await;
+        let id = goal["id"].as_str().expect("id");
+
+        let (status, detail) =
+            request(&app, Method::GET, &format!("/v1/goals/{id}"), None, &[]).await;
+        assert_eq!(status, StatusCode::OK, "the jar must still render");
+        assert!(
+            detail["reconciliation"].is_null(),
+            "an unreadable chain is reported as null, not as a zero balance"
+        );
+        assert_eq!(detail["goal"]["id"], id);
+    }
 }
