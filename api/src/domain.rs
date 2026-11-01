@@ -12,8 +12,11 @@ use crate::config::Config;
 use crate::error::ApiError;
 
 pub const GOAL_ID_LEN: usize = 8;
-/// Nimiq's letter list minus the characters that get misread out loud: i, l, o, u.
-pub const GOAL_ID_ALPHABET: &[u8] = b"0123456789abcdefghjkmnpqrstuvwxyz";
+/// The contract's id alphabet. Its literal string in docs/API.md is 33 characters
+/// and includes `u`, which contradicts the documented rule "(no i, l, o, u)", so we
+/// take the intersection: everything the contract lists except i, l, o and u. Every
+/// id we mint is therefore valid under the literal string *and* under the rule.
+pub const GOAL_ID_ALPHABET: &[u8] = b"0123456789abcdefghjkmnpqrstvwxyz";
 /// User-friendly address payload alphabet (base32, no I, O, W, Z).
 const ADDRESS_ALPHABET: &[u8] = b"0123456789ABCDEFGHJKLMNPQRSTUVXY";
 const ADDRESS_LEN: usize = 36;
@@ -478,6 +481,12 @@ mod tests {
         assert_eq!(GOAL_ID_ALPHABET.len(), 32);
         for banned in [b'i', b'l', b'o', b'u'] {
             assert!(!GOAL_ID_ALPHABET.contains(&banned));
+        }
+        // Still a subset of the literal string in docs/API.md, so a client that
+        // validates against that string accepts everything we mint.
+        let documented = b"0123456789abcdefghjkmnpqrstuvwxyz";
+        for byte in GOAL_ID_ALPHABET {
+            assert!(documented.contains(byte), "{} is not documented", *byte as char);
         }
     }
 

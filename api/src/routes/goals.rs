@@ -343,7 +343,7 @@ mod tests {
         let (status, body) = request(
             &app,
             Method::GET,
-            &format!("/v1/goals?owner={TEST_OWNER}"),
+            &format!("/v1/goals?owner={}", TEST_OWNER.replace(' ', "%20")),
             None,
             &[],
         )
