@@ -114,7 +114,17 @@ NEXT_PUBLIC_API_BASE=http://localhost:8080 pnpm dev
 ```
 
 `NEXT_PUBLIC_API_BASE` is inlined at build time, so a deploy needs it set in the host's
-environment.
+environment. It is configured for production, preview and development.
+
+### Deploying
+
+The Vercel project is git-linked to this repository with its **Root Directory set to `web`**.
+Leaving that setting at the repo root is what produces `Error: [NEXT_NO_VERSION] No Next.js
+version detected`, because `package.json` lives in `web/`. Pushing to `main` deploys
+production; nothing else is needed.
+
+The API deploys with `flyctl deploy --remote-only --app kitty-api-memeshee` from `api/`. Its
+SQLite file lives on the `kitty_data` volume mounted at `/data`.
 
 ### Load it into Nimiq Pay
 
