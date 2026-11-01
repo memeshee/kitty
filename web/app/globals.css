@@ -1,58 +1,248 @@
 @import "tailwindcss";
 
-/* Kitty design tokens. One accent, one theme family: deep forest ink on bone
-   paper with amber as the only accent. Brick exists for error text and nothing
-   else. No second hue, no gradients, no purple. */
+/* Kitty design system — "the jar's page".
+ *
+ * Warm analog editorial: bone paper, forest ink, one amber accent. Every surface
+ * is a printed slip: hairline ink borders, hard offset shadows instead of blur,
+ * perforated tear lines between a slip and its stub. Money is always tabular mono
+ * so a changing amount never shifts the line it sits on.
+ *
+ * Shape lock: cards 10px, inputs 10px, chips and buttons full pill.
+ */
+
 @theme {
+  --color-paper: #f2ede1;
+  --color-paper-light: #fbf8f1;
+  --color-paper-deep: #e6dfcd;
   --color-ink: #14261f;
-  --color-ink-soft: #2b3d34;
-  --color-slate: #5f6f66;
-  --color-paper: #f4f0e6;
-  --color-paper-deep: #e9e2d2;
-  --color-amber: #dd9a1e;
-  --color-amber-soft: #f6e3bd;
+  --color-ink-soft: #40564c;
+  --color-ink-faint: #7b8b81;
+  --color-amber: #d99a1b;
+  --color-amber-deep: #b87b12;
+  --color-amber-wash: #f7e7c3;
+  --color-moss: #3f6b4a;
   --color-brick: #a6473a;
+  --color-sky: #cfe0d5;
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-mono-jb), ui-monospace, monospace;
 
-  --radius-surface: 20px;
-  --radius-input: 12px;
+  --radius-card: 10px;
+  --radius-field: 10px;
 }
 
-html {
-  -webkit-text-size-adjust: 100%;
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    /* Two soft washes give the page a lamp-lit paper feel without gradient soup. */
+    background-image:
+      radial-gradient(120% 80% at 88% -12%, color-mix(in srgb, var(--color-amber) 20%, transparent), transparent 58%),
+      radial-gradient(90% 70% at -12% 112%, color-mix(in srgb, var(--color-sky) 55%, transparent), transparent 62%);
+    background-attachment: fixed;
+    padding-bottom: env(safe-area-inset-bottom);
+    overscroll-behavior-y: contain;
+  }
+
+  /* Paper grain, above the washes and below the content. Fixed so it never repaints. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.32;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.08  0 0 0 0 0.07  0 0 0 0 0.06  0 0 0 0.10 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  :where(a, button, input, textarea, select):focus-visible {
+    outline: 2px solid var(--color-amber-deep);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-amber) 45%, transparent);
+  }
 }
 
-body {
-  background: var(--color-paper);
-  color: var(--color-ink);
-  font-family: var(--font-sans);
-  /* A WebView reports its own safe areas; never let content sit under a notch. */
-  padding-bottom: env(safe-area-inset-bottom);
-  overscroll-behavior-y: contain;
+@layer components {
+  /* Small tracked label above a heading. Used sparingly: at most one section in three. */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    line-height: 1;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-ink-faint);
+  }
+
+  /* A printed slip: the workhorse surface of the product. */
+  .slip {
+    border: 1.5px solid var(--color-ink);
+    border-radius: var(--radius-card);
+    background: var(--color-paper-light);
+  }
+
+  .slip-press {
+    border: 1.5px solid var(--color-ink);
+    border-radius: var(--radius-card);
+    background: var(--color-paper-light);
+    box-shadow: 3px 3px 0 0 var(--color-ink);
+  }
+
+  /* Torn perforation along the top edge of a stub: radial notches, no images. */
+  .perforation {
+    position: relative;
+  }
+
+  .perforation::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: -1px;
+    height: 8px;
+    background-image: radial-gradient(circle at 4px 0, var(--color-paper) 4px, transparent 4.5px);
+    background-size: 12px 8px;
+    background-repeat: repeat-x;
+    pointer-events: none;
+  }
+
+  /* Ledger paper: hairline rules that make a receipt list read like a book. */
+  .ruled {
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 43px,
+      color-mix(in srgb, var(--color-ink) 10%, transparent) 43px,
+      color-mix(in srgb, var(--color-ink) 10%, transparent) 44px
+    );
+  }
+
+  /* The small pill used for +/- controls and secondary actions. 44px targets. */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 1.5px solid var(--color-ink);
+    border-radius: 999px;
+    background: var(--color-paper-light);
+    box-shadow: 2px 2px 0 0 var(--color-ink);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    transition:
+      transform 150ms cubic-bezier(0.2, 0.9, 0.3, 1.25),
+      box-shadow 150ms cubic-bezier(0.2, 0.9, 0.3, 1.25);
+  }
+
+  .chip:active:not(:disabled) {
+    transform: translate(2px, 2px);
+    box-shadow: 0 0 0 0 var(--color-ink);
+  }
+
+  .chip:disabled {
+    opacity: 0.4;
+    box-shadow: none;
+  }
+
+  /* The primary action: a stamp you press. */
+  .stamp-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 52px;
+    padding: 0 24px;
+    border: 1.5px solid var(--color-ink);
+    border-radius: 999px;
+    background: var(--color-ink);
+    color: var(--color-paper-light);
+    font-size: 15px;
+    font-weight: 500;
+    box-shadow: 3px 3px 0 0 color-mix(in srgb, var(--color-ink) 45%, transparent);
+    transition:
+      transform 150ms cubic-bezier(0.2, 0.9, 0.3, 1.25),
+      box-shadow 150ms cubic-bezier(0.2, 0.9, 0.3, 1.25);
+  }
+
+  .stamp-button:active:not(:disabled) {
+    transform: translate(3px, 3px);
+    box-shadow: 0 0 0 0 transparent;
+  }
+
+  .stamp-button:disabled {
+    opacity: 0.45;
+    box-shadow: none;
+  }
+
+  .stamp-button[data-variant="amber"] {
+    background: var(--color-amber);
+    color: var(--color-ink);
+    box-shadow: 3px 3px 0 0 var(--color-ink);
+  }
+
+  .stamp-button[data-variant="quiet"] {
+    background: var(--color-paper-light);
+    color: var(--color-ink);
+    box-shadow: 3px 3px 0 0 var(--color-ink);
+  }
+
+  .field {
+    width: 100%;
+    min-height: 48px;
+    padding: 12px 14px;
+    border: 1.5px solid color-mix(in srgb, var(--color-ink) 45%, transparent);
+    border-radius: var(--radius-field);
+    background: var(--color-paper-light);
+    color: var(--color-ink);
+    font-size: 15px;
+  }
+
+  .field::placeholder {
+    color: color-mix(in srgb, var(--color-ink-faint) 90%, transparent);
+  }
+
+  .field:focus {
+    border-color: var(--color-ink);
+  }
 }
 
-/* One focus treatment, used everywhere. */
-:where(a, button, input, textarea, select):focus-visible {
-  outline: 2px solid var(--color-ink);
-  outline-offset: 2px;
-  border-radius: 6px;
-}
-
-/* Money and hashes are tabular so a changing amount never shifts the line. */
+/* Money and hashes: tabular so a changing amount never shifts the line. */
 .tnum {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
 
-/* Motion is motivated: a new receipt arrives, the jar fills, a button presses.
-   Everything collapses when the user asks for less motion. */
-@keyframes kitty-rise {
+/* Motion is motivated: a receipt prints, a slip rises, a stamp presses.
+   Everything collapses to nothing when the user asks for less movement. */
+@keyframes print-in {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(-6px);
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
   }
   to {
     opacity: 1;
@@ -60,16 +250,24 @@ body {
   }
 }
 
-.rise {
-  animation: kitty-rise 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+.animate-print-in {
+  animation: print-in 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-rise {
+  animation: rise 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rise {
+  .animate-print-in,
+  .animate-rise {
     animation: none;
   }
-  * {
+  *,
+  *::before,
+  *::after {
     transition-duration: 1ms !important;
     animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
   }
 }

@@ -1,107 +1,149 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import type { Contribution, GoalDetail } from "@/lib/api"
-import { Jar } from "@/components/Jar"
-import { Ledger } from "@/components/Ledger"
-import { TrustLine } from "@/components/TrustLine"
+import { cn } from "@/lib/cn"
+import { readPace } from "@/lib/pace"
+import { nextStep } from "@/lib/nextStep"
+import { shortAddress, when } from "@/lib/format"
+import { useWallet } from "@/lib/useWallet"
+import { JarCard } from "@/components/JarCard"
+import { ReceiptList } from "@/components/ReceiptList"
+import { NextStepCard } from "@/components/NextStepCard"
 import { ChipIn } from "@/components/ChipIn"
-import { Share } from "@/components/Share"
+import { ShareCard } from "@/components/ShareCard"
+import { TrustCard } from "@/components/TrustCard"
 import { OwnerTools } from "@/components/OwnerTools"
-import { dayCount, lunaToNim, shortAddress, when } from "@/lib/format"
+import { StickyBar } from "@/components/StickyBar"
+import { Slip } from "@/components/kit"
 
 export function GoalView({ initial }: { initial: GoalDetail }) {
   const [detail, setDetail] = useState<GoalDetail>(initial)
-  const { goal, contributions, thanks, reconciliation } = detail
+  const wallet = useWallet()
+  const { goal, contributions, thanks, reconciliation, stats } = detail
+
+  const pace = useMemo(() => readPace(goal), [goal])
+  const isOwner = !!wallet.address && wallet.address === goal.owner_address
+  const step = useMemo(
+    () => nextStep({ goal, pace, viewerAddress: wallet.address, isOwner, contributions }),
+    [goal, pace, wallet.address, isOwner, contributions],
+  )
 
   function onPaid(contribution: Contribution, raised: string) {
     setDetail((d) => ({
       ...d,
-      goal: { ...d.goal, raised_luna: raised, contributors_count: d.goal.contributors_count + (contribution.pending ? 0 : 1) },
+      goal: {
+        ...d.goal,
+        raised_luna: raised,
+        contributors_count: d.goal.contributors_count + (contribution.pending ? 0 : 1),
+      },
       contributions: [contribution, ...d.contributions.filter((c) => c.tx_hash !== contribution.tx_hash)],
     }))
   }
 
+  function goTo(id: string) {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "center" })
+  }
+
   return (
-    <main>
-      <a href="/" className="text-[13px] text-slate underline-offset-4 hover:underline">
-        Kitty
-      </a>
+    <main className="pb-4">
+      <Slip as="header" className="overflow-hidden">
+        <div className="px-5 py-4">
+          <div className="flex items-center justify-between gap-2">
+            <p className="eyebrow">Jar · {goal.id}</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-faint">
+              {goal.status === "closed" ? "closed" : `by ${shortAddress(goal.owner_address)}`}
+            </p>
+          </div>
+          <h1 className="mt-2 text-[27px] leading-[1.1] font-medium tracking-tight">{goal.title}</h1>
+          {goal.story ? <p className="mt-2 text-[14px] leading-relaxed text-ink-soft">{goal.story}</p> : null}
+        </div>
+        <div className="perforation flex items-center justify-between border-t-[1.5px] border-dashed border-ink/25 bg-paper-deep/40 px-5 py-2.5">
+          <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-soft">
+            opened {when(goal.created_at)}
+          </p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-soft">collect by {goal.deadline}</p>
+        </div>
+      </Slip>
 
-      <header className="mt-5">
-        <h1 className="text-[30px] leading-[1.08] font-medium tracking-tight text-ink">{goal.title}</h1>
-        {goal.story ? <p className="mt-2.5 text-[14.5px] leading-relaxed text-ink-soft">{goal.story}</p> : null}
-        <p className="tnum mt-3 text-[12px] text-slate">
-          {shortAddress(goal.owner_address)} · started {when(goal.created_at)}
-          {goal.status === "closed" ? " · closed" : ""}
-        </p>
-      </header>
+      <div className="mt-4">
+        <JarCard raised={goal.raised_luna} target={goal.target_luna} pace={pace} contributions={contributions} />
+      </div>
 
-      <section className="mt-7">
-        <Jar
-          raised={goal.raised_luna}
-          target={goal.target_luna}
-          contributors={goal.contributors_count}
-          days={dayCount(goal.deadline)}
-          closed={goal.status === "closed"}
+      <div className="mt-4">
+        <NextStepCard
+          goal={goal}
+          pace={pace}
+          contributions={contributions}
+          viewerAddress={wallet.address}
+          isOwner={isOwner}
         />
-      </section>
+      </div>
 
-      <section className="mt-6">
-        <ChipIn goal={goal} onPaid={onPaid} />
-      </section>
+      {goal.status === "open" && pace.phase !== "met" ? (
+        <div className="mt-4">
+          <ChipIn goal={goal} onPaid={onPaid} />
+        </div>
+      ) : null}
 
-      <section className="mt-4">
-        <Share url={`/g/${goal.id}`} title={goal.title} />
-      </section>
+      <div className="mt-4">
+        <ShareCard goalId={goal.id} title={goal.title} />
+      </div>
 
-      <section className="mt-9">
+      <Slip as="section" className="mt-4 p-4">
         <div className="flex items-baseline justify-between">
-          <h2 className="text-[15px] font-medium text-ink">Receipts</h2>
-          <span className="tnum text-[12px] text-slate">
-            {detail.stats.contributions_count} in · avg {lunaToNim(detail.stats.average_luna)} NIM
-          </span>
+          <p className="eyebrow">Receipts</p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-faint">
+            {stats.contributions_count} in
+          </p>
         </div>
         <div className="mt-1">
-          <Ledger contributions={contributions} />
+          <ReceiptList contributions={contributions} />
         </div>
-      </section>
+      </Slip>
 
-      <section className="mt-6">
-        <TrustLine r={reconciliation} />
-      </section>
+      <div className="mt-4">
+        <TrustCard r={reconciliation} />
+      </div>
 
       {thanks.length ? (
-        <section className="mt-6">
-          <h2 className="text-[15px] font-medium text-ink">From the owner</h2>
+        <Slip as="section" className="mt-4 p-4">
+          <p className="eyebrow">From the owner</p>
           <ul className="mt-2 grid gap-2">
             {thanks.map((t) => (
-              <li key={t.id} className="rounded-[20px] bg-amber-soft/60 px-4 py-3">
-                <p className="text-[14px] leading-relaxed text-ink">{t.body}</p>
-                <p className="mt-1 text-[11.5px] text-slate">{when(t.created_at)}</p>
+              <li key={t.id} className="rounded-[8px] border-[1.5px] border-ink/15 bg-amber-wash/70 px-3 py-2">
+                <p className="text-[13.5px] leading-relaxed text-ink">{t.body}</p>
+                <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.1em] text-ink-faint">{when(t.created_at)}</p>
               </li>
             ))}
           </ul>
-        </section>
+        </Slip>
       ) : null}
 
-      <OwnerTools goal={goal} />
+      <div className="mt-4">
+        <OwnerTools goal={goal} />
+      </div>
 
-      <footer className="mt-10 border-t border-ink/10 pt-4">
-        <p className="text-[12px] leading-relaxed text-slate">
-          Kitty never holds the money and never holds a key. Coins go straight from the giver to the owner&apos;s own
-          Nimiq wallet, tagged with this goal, and every receipt above opens on the chain.
+      <footer className="mt-8 border-t-[1.5px] border-ink/15 pt-4">
+        <p className="text-[11.5px] leading-relaxed text-ink-faint">
+          Kitty holds no money and no keys. Coins go straight from the giver to the owner&apos;s own Nimiq wallet,
+          tagged with this goal, and every receipt above opens on the chain.
         </p>
-        <p className="mt-2 text-[12px] text-slate">
-          <a href="/stats" className="underline underline-offset-4">
-            Public numbers
-          </a>{" "}
-          ·{" "}
-          <a href="https://github.com/memeshee/kitty" className="underline underline-offset-4">
-            Source
-          </a>
+        <p className="mt-2 flex gap-3 font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink-faint">
+          <a href="/proof" className="hover:text-ink">Proof</a>
+          <a href="https://github.com/memeshee/kitty" className="hover:text-ink">Source</a>
+          <a href="/" className="hover:text-ink">All jars</a>
         </p>
       </footer>
+
+      {goal.status === "open" && pace.phase !== "met" ? (
+        <StickyBar
+          goal={goal}
+          pace={pace}
+          action={isOwner ? "Share" : "Chip in"}
+          onAction={() => goTo(isOwner ? "share" : "chipin")}
+        />
+      ) : null}
     </main>
   )
 }

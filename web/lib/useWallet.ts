@@ -5,7 +5,8 @@ import { addressKey } from "@/lib/api"
 import { connect, inNimiqPay, hostNetwork } from "@/lib/nimiq"
 
 type State = {
-  inside: boolean
+  /** null until the host context has been read, so nothing flashes the wrong UI */
+  inside: boolean | null
   address: string | null
   network: "mainnet" | "testnet"
   connecting: boolean
@@ -13,10 +14,10 @@ type State = {
 }
 
 /** Wallet state for the app surfaces. Identity is the wallet address, re-read per
- *  session, because Nimiq Pay wipes WebView cookies between launches. */
+ *  session, because Nimiq Pay wipes WebView storage between launches. */
 export function useWallet() {
   const [state, setState] = useState<State>({
-    inside: false,
+    inside: null,
     address: null,
     network: "mainnet",
     connecting: false,

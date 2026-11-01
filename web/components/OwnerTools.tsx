@@ -2,15 +2,16 @@
 
 import { useEffect, useState } from "react"
 import { api, ApiError, ownerKey, type Goal } from "@/lib/api"
-import { Button } from "@/components/Bits"
+import { Button, Field, Input, Slip } from "@/components/kit"
+import { useToast } from "@/components/Toaster"
 
-/** Owner-only controls. The token lives in this browser only. It can post a
+/** Owner-only controls. The token lives in this browser only. It can print a
  *  thank-you or close the jar; it can never move money, because nobody can. */
 export function OwnerTools({ goal }: { goal: Goal }) {
+  const toast = useToast()
   const [token, setToken] = useState<string | null>(null)
   const [body, setBody] = useState("")
   const [busy, setBusy] = useState(false)
-  const [msg, setMsg] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
 
   useEffect(() => {
@@ -23,14 +24,15 @@ export function OwnerTools({ goal }: { goal: Goal }) {
     if (!token) return
     setBusy(true)
     setErr(null)
-    setMsg(null)
     try {
       await api.addThanks(goal.id, token, body.trim())
       setBody("")
-      setMsg("Posted. Contributors will see it above.")
-      setTimeout(() => window.location.reload(), 900)
+      toast.push({ title: "Thank-you printed", body: "It shows above the receipts now." })
+      setTimeout(() => window.location.reload(), 700)
     } catch (e) {
-      setErr(e instanceof ApiError ? e.message : "Could not post that")
+      const message = e instanceof ApiError ? e.message : "Could not post that"
+      setErr(message)
+      toast.push({ title: "Not posted", body: message, tone: "brick" })
     } finally {
       setBusy(false)
     }
@@ -42,7 +44,8 @@ export function OwnerTools({ goal }: { goal: Goal }) {
     setErr(null)
     try {
       await api.closeGoal(goal.id, token)
-      window.location.reload()
+      toast.push({ title: "Jar closed", body: "The receipts stay public." })
+      setTimeout(() => window.location.reload(), 700)
     } catch (e) {
       setErr(e instanceof ApiError ? e.message : "Could not close the jar")
       setBusy(false)
@@ -50,31 +53,35 @@ export function OwnerTools({ goal }: { goal: Goal }) {
   }
 
   return (
-    <section className="mt-8 rounded-[20px] border border-ink/15 p-4">
-      <h2 className="text-[15px] font-medium text-ink">Your jar</h2>
-      <p className="mt-1 text-[12.5px] leading-relaxed text-slate">
-        Only this browser can post here. Keep the link with the owner key if you want to manage this jar from another
-        device.
+    <Slip as="section" className="p-4">
+      <div id="owner-tools" className="scroll-mt-24" />
+      <p className="eyebrow">Your jar</p>
+      <p className="mt-1 text-[12px] leading-relaxed text-ink-faint">
+        Only this browser can post here. Keep the link with the owner key to manage this jar elsewhere.
       </p>
-      <textarea
-        value={body}
-        onChange={(e) => setBody(e.target.value.slice(0, 280))}
-        placeholder="Thank the people who chipped in"
-        rows={3}
-        className="mt-3 w-full rounded-[12px] border border-ink/15 bg-white/60 px-4 py-3 text-[14px] text-ink placeholder:text-slate/70"
-      />
+      <div className="mt-3">
+        <Field label="Thank the people who chipped in" id="thanks-body">
+          <textarea
+            id="thanks-body"
+            value={body}
+            onChange={(e) => setBody(e.target.value.slice(0, 280))}
+            rows={3}
+            placeholder="We made term one. Thank you all."
+            className="field resize-none"
+          />
+        </Field>
+      </div>
       <div className="mt-3 flex items-center gap-2">
-        <Button onClick={send} disabled={busy || body.trim().length < 2}>
+        <Button onClick={send} disabled={busy || body.trim().length < 2} variant="amber">
           Post thank-you
         </Button>
         {goal.status === "open" ? (
-          <button onClick={close} disabled={busy} className="px-2 text-[13px] text-slate underline underline-offset-4">
+          <button onClick={close} disabled={busy} className="chip text-[12px]">
             Close jar
           </button>
         ) : null}
       </div>
-      {msg ? <p className="mt-2 text-[12.5px] text-slate">{msg}</p> : null}
       {err ? <p className="mt-2 text-[12.5px] text-brick">{err}</p> : null}
-    </section>
+    </Slip>
   )
 }

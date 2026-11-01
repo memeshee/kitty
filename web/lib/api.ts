@@ -115,6 +115,8 @@ export const api = {
   getGoalFresh: (id: string) => call<GoalDetail>(`/goals/${id}`),
   listGoals: (owner: string) => call<{ goals: Goal[] }>(`/goals?owner=${encodeURIComponent(owner)}`),
   getStats: () => read<Stats>(`/stats`, 30),
+  /** Newest public jars, for the home page. Revalidated, since it is a server read. */
+  recentGoals: () => read<{ goals: Goal[] }>(`/goals`, 20),
   createGoal: (input: {
     owner_address: string
     owner_token: string
