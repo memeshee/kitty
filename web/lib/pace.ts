@@ -46,7 +46,9 @@ export function readPace(goal: Goal, now = Date.now()): Pace {
 
   const projected = wholeRaised + perDay * Math.max(0, daysLeft)
   const shortfall = Math.max(0, wholeTarget - projected)
-  const onTrack = shortfall === 0
+  // A jar that opened in the last day has no pace to compare: it is not "behind".
+  const justOpened = wholeRaised === 0 && daysOpen <= 1
+  const onTrack = shortfall === 0 || justOpened
 
   let phase: Phase = "collecting"
   if (raised >= target && target > 0n) phase = "met"
@@ -62,7 +64,9 @@ export function readPace(goal: Goal, now = Date.now()): Pace {
     neededPerDay,
     shortfall,
     onTrack,
-    verdict: verdictFor({ phase, percent, daysLeft, remaining, perDay, neededPerDay, shortfall }),
+    verdict: justOpened
+      ? `Just opened. ${neededPerDay.toLocaleString("en-US")} NIM a day fills it by the date.`
+      : verdictFor({ phase, percent, daysLeft, remaining, perDay, neededPerDay, shortfall }),
   }
 }
 
