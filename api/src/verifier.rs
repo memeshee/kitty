@@ -185,14 +185,20 @@ mod tests {
     #[test]
     fn accepts_the_exact_prefix_and_a_longer_memo() {
         assert!(memo_matches(&hex_of("kitty:k3f9x2ab"), GOAL_ID));
-        assert!(memo_matches(&hex_of("kitty:k3f9x2ab for the books"), GOAL_ID));
+        assert!(memo_matches(
+            &hex_of("kitty:k3f9x2ab for the books"),
+            GOAL_ID
+        ));
     }
 
     #[test]
     fn rejects_memos_for_other_goals_and_garbage() {
         assert!(!memo_matches(&hex_of("kitty:zzzzzzzz"), GOAL_ID));
         assert!(!memo_matches(&hex_of("kitty k3f9x2ab"), GOAL_ID));
-        assert!(!memo_matches(&hex_of("You mined NIM on Nimiq.Space!"), GOAL_ID));
+        assert!(!memo_matches(
+            &hex_of("You mined NIM on Nimiq.Space!"),
+            GOAL_ID
+        ));
         assert!(!memo_matches("", GOAL_ID));
         assert!(!memo_matches("zzzz", GOAL_ID)); // not hex
         assert!(!memo_matches("ff", GOAL_ID)); // hex, but not UTF-8
@@ -222,7 +228,13 @@ mod tests {
     async fn records_the_chain_value_not_the_client_claim() {
         let (state, stub) = test_state("happy").await;
         stub.set_tx(stub_tx(
-            TX_HASH, OWNER, OTHER, 154_558, "kitty:k3f9x2ab", true, 11,
+            TX_HASH,
+            OWNER,
+            OTHER,
+            154_558,
+            "kitty:k3f9x2ab",
+            true,
+            11,
         ));
         let goal = goal_fixture(&state, OWNER).await;
 
@@ -287,7 +299,13 @@ mod tests {
     async fn the_same_hash_cannot_count_twice() {
         let (state, stub) = test_state("duplicate").await;
         stub.set_tx(stub_tx(
-            TX_HASH, OWNER, OTHER, 154_558, "kitty:k3f9x2ab", true, 11,
+            TX_HASH,
+            OWNER,
+            OTHER,
+            154_558,
+            "kitty:k3f9x2ab",
+            true,
+            11,
         ));
         let goal = goal_fixture(&state, OWNER).await;
 
@@ -321,7 +339,13 @@ mod tests {
     async fn a_payment_to_someone_else_is_wrong_recipient() {
         let (state, stub) = test_state("wrong_recipient").await;
         stub.set_tx(stub_tx(
-            TX_HASH, OTHER, OTHER, 154_558, "kitty:k3f9x2ab", true, 11,
+            TX_HASH,
+            OTHER,
+            OTHER,
+            154_558,
+            "kitty:k3f9x2ab",
+            true,
+            11,
         ));
         let goal = goal_fixture(&state, OWNER).await;
 
@@ -367,7 +391,13 @@ mod tests {
     async fn a_memo_for_another_goal_is_wrong_memo() {
         let (state, stub) = test_state("other_goal").await;
         stub.set_tx(stub_tx(
-            TX_HASH, OWNER, OTHER, 154_558, "kitty:zzzzzzzz", true, 11,
+            TX_HASH,
+            OWNER,
+            OTHER,
+            154_558,
+            "kitty:zzzzzzzz",
+            true,
+            11,
         ));
         let goal = goal_fixture(&state, OWNER).await;
 
@@ -389,7 +419,9 @@ mod tests {
     async fn live_mainnet_fixture_still_matches_the_recorded_facts() {
         let state = crate::test_support::live_state("live_fixture").await;
         if !crate::test_support::chain_reachable(&state).await {
-            eprintln!("SKIP live_mainnet_fixture_still_matches_the_recorded_facts: rpc unreachable");
+            eprintln!(
+                "SKIP live_mainnet_fixture_still_matches_the_recorded_facts: rpc unreachable"
+            );
             return;
         }
 

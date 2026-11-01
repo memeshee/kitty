@@ -199,7 +199,10 @@ mod tests {
         assert_eq!(body["error"]["code"], "pending");
         assert_eq!(body["contribution"]["status"], "pending");
         assert_eq!(body["contribution"]["confirmations"], 0);
-        assert_eq!(body["goal"]["raised_luna"], "0", "pending money is not in the jar");
+        assert_eq!(
+            body["goal"]["raised_luna"], "0",
+            "pending money is not in the jar"
+        );
 
         let (status, detail) =
             request(&app, Method::GET, &format!("/v1/goals/{id}"), None, &[]).await;

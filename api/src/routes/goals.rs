@@ -239,7 +239,10 @@ mod tests {
         let app = crate::routes::app(state);
 
         let goal = create_goal(&app, TEST_OWNER, TEST_TOKEN).await;
-        assert_eq!(goal["owner_address"], "NQ87BLXR6NUY1TAJTDTASP4Y53DJX96MCLCK");
+        assert_eq!(
+            goal["owner_address"],
+            "NQ87BLXR6NUY1TAJTDTASP4Y53DJX96MCLCK"
+        );
         assert_eq!(goal["status"], "open");
         assert_eq!(goal["raised_luna"], "0");
         assert_eq!(goal["contributors_count"], 0);

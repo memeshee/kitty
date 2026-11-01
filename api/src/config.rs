@@ -86,7 +86,10 @@ impl Config {
 }
 
 fn non_empty(key: &str) -> Option<String> {
-    env::var(key).ok().map(|v| v.trim().to_string()).filter(|v| !v.is_empty())
+    env::var(key)
+        .ok()
+        .map(|v| v.trim().to_string())
+        .filter(|v| !v.is_empty())
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -117,6 +120,9 @@ mod tests {
             web_base_url: "https://kitty.example/g/".to_string(),
             ..Config::default()
         };
-        assert_eq!(cfg.share_url("k3f9x2ab"), "https://kitty.example/g/k3f9x2ab");
+        assert_eq!(
+            cfg.share_url("k3f9x2ab"),
+            "https://kitty.example/g/k3f9x2ab"
+        );
     }
 }

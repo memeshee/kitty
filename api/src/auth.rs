@@ -16,10 +16,7 @@ pub fn hash_token(token: &str) -> String {
 pub fn token_matches(presented: &str, stored_hash: &str) -> bool {
     let candidate = hash_token(presented.trim());
     // `ct_eq` refuses to short-circuit on the first differing byte.
-    candidate
-        .as_bytes()
-        .ct_eq(stored_hash.as_bytes())
-        .into()
+    candidate.as_bytes().ct_eq(stored_hash.as_bytes()).into()
 }
 
 pub fn extract_bearer(headers: &axum::http::HeaderMap) -> Option<String> {
@@ -36,7 +33,8 @@ pub fn require_owner(
     headers: &axum::http::HeaderMap,
     goal: &crate::domain::GoalRecord,
 ) -> Result<(), crate::error::ApiError> {
-    let presented = extract_bearer(headers).ok_or_else(crate::error::ApiError::owner_token_invalid)?;
+    let presented =
+        extract_bearer(headers).ok_or_else(crate::error::ApiError::owner_token_invalid)?;
     if token_matches(&presented, &goal.owner_token_hash) {
         Ok(())
     } else {

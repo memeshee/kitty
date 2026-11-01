@@ -143,6 +143,9 @@ mod tests {
                 "verified_at": body["verified_at"].clone(),
             })
         );
-        assert!(body["verified_at"].as_str().expect("timestamp").ends_with('Z'));
+        assert!(body["verified_at"]
+            .as_str()
+            .expect("timestamp")
+            .ends_with('Z'));
     }
 }

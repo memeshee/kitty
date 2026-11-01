@@ -50,10 +50,7 @@ pub fn new_goal_id() -> String {
 
 /// Ids are compared and parsed exactly as stored, so the check is strict.
 pub fn is_valid_goal_id(id: &str) -> bool {
-    id.len() == GOAL_ID_LEN
-        && id
-            .bytes()
-            .all(|b| GOAL_ID_ALPHABET.contains(&b))
+    id.len() == GOAL_ID_LEN && id.bytes().all(|b| GOAL_ID_ALPHABET.contains(&b))
 }
 
 /// Upper case, spaces stripped. The only address form that is stored or compared.
@@ -195,12 +192,14 @@ impl CreateGoalRequest {
 
         let token = self.owner_token.trim().to_string();
         if token.len() != 64 || !token.bytes().all(|b| b.is_ascii_hexdigit()) {
-            return Err(ApiError::validation("owner_token must be 64 hex characters"));
+            return Err(ApiError::validation(
+                "owner_token must be 64 hex characters",
+            ));
         }
 
         let title = self.title.trim().to_string();
         let title_len = title.chars().count();
-        if title_len < TITLE_MIN || title_len > TITLE_MAX {
+        if !(TITLE_MIN..=TITLE_MAX).contains(&title_len) {
             return Err(ApiError::validation(format!(
                 "title must be {TITLE_MIN}..{TITLE_MAX} characters"
             )));
@@ -232,11 +231,7 @@ impl CreateGoalRequest {
             ));
         }
 
-        let accent = self
-            .accent
-            .unwrap_or_default()
-            .trim()
-            .to_string();
+        let accent = self.accent.unwrap_or_default().trim().to_string();
         let accent = if accent.is_empty() {
             "amber".to_string()
         } else if accent.chars().count() > ACCENT_MAX
@@ -283,7 +278,11 @@ impl CreateContributionRequest {
     }
 
     pub fn display_name(&self) -> Result<Option<String>, ApiError> {
-        clean_optional(self.display_name.as_deref(), DISPLAY_NAME_MAX, "display_name")
+        clean_optional(
+            self.display_name.as_deref(),
+            DISPLAY_NAME_MAX,
+            "display_name",
+        )
     }
 
     pub fn note(&self) -> Result<Option<String>, ApiError> {
@@ -311,11 +310,7 @@ impl CreateThanksRequest {
     }
 }
 
-fn clean_optional(
-    raw: Option<&str>,
-    max: usize,
-    field: &str,
-) -> Result<Option<String>, ApiError> {
+fn clean_optional(raw: Option<&str>, max: usize, field: &str) -> Result<Option<String>, ApiError> {
     let Some(value) = raw else { return Ok(None) };
     let value = value.trim();
     if value.is_empty() {
@@ -463,7 +458,9 @@ mod tests {
     fn accepts_real_mainnet_addresses() {
         // Both taken from live mainnet traffic, one of them the memo test fixture.
         assert!(is_valid_address(REAL_OWNER));
-        assert!(is_valid_address("NQ16 2SSN 82TL SMQS KXT3 Q01V CMAL NU6F 1LJG"));
+        assert!(is_valid_address(
+            "NQ16 2SSN 82TL SMQS KXT3 Q01V CMAL NU6F 1LJG"
+        ));
         assert!(is_valid_address("NQ0231N63KM5T6G522TNEPF55XPYRLHKRMB3"));
     }
 
@@ -479,14 +476,18 @@ mod tests {
     #[test]
     fn goal_ids_use_the_documented_alphabet() {
         assert_eq!(GOAL_ID_ALPHABET.len(), 32);
-        for banned in [b'i', b'l', b'o', b'u'] {
+        for banned in *b"ilou" {
             assert!(!GOAL_ID_ALPHABET.contains(&banned));
         }
         // Still a subset of the literal string in docs/API.md, so a client that
         // validates against that string accepts everything we mint.
         let documented = b"0123456789abcdefghjkmnpqrstuvwxyz";
         for byte in GOAL_ID_ALPHABET {
-            assert!(documented.contains(byte), "{} is not documented", *byte as char);
+            assert!(
+                documented.contains(byte),
+                "{} is not documented",
+                *byte as char
+            );
         }
     }
 

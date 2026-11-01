@@ -135,8 +135,12 @@ impl ChainClient {
             )));
         }
 
-        let envelope: Envelope = serde_json::from_str(&text)
-            .map_err(|err| ChainError::Decode(format!("{err}: {}", text.chars().take(200).collect::<String>())))?;
+        let envelope: Envelope = serde_json::from_str(&text).map_err(|err| {
+            ChainError::Decode(format!(
+                "{err}: {}",
+                text.chars().take(200).collect::<String>()
+            ))
+        })?;
 
         if let Some(error) = envelope.error {
             debug!(method, code = error.code, message = %error.message, "rpc error");
@@ -231,7 +235,10 @@ impl ChainClient {
         let key = crate::domain::normalise_address(address);
 
         let cached = {
-            let guard = self.cache.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+            let guard = self
+                .cache
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
             guard.get(&key).cloned()
         };
         if let Some(entry) = cached {
@@ -243,7 +250,10 @@ impl ChainClient {
         let fresh = self.get_account(&key).await?;
 
         {
-            let mut guard = self.cache.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+            let mut guard = self
+                .cache
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
             // Cheap bound: the cache is a short-lived convenience, not a store.
             if guard.len() > 4096 {
                 guard.clear();

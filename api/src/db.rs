@@ -18,7 +18,9 @@ pub const MIGRATIONS: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
 /// Opens (creating if needed) the SQLite file named by `DATABASE_URL`. The
 /// documented default is a bare path; a `sqlite://` prefix is also accepted.
 pub async fn connect(database_url: &str) -> Result<SqlitePool, sqlx::Error> {
-    let path = database_url.strip_prefix("sqlite://").unwrap_or(database_url);
+    let path = database_url
+        .strip_prefix("sqlite://")
+        .unwrap_or(database_url);
 
     let options = SqliteConnectOptions::new()
         .filename(path)
@@ -124,11 +126,7 @@ pub async fn goals_by_owner(
     }
 }
 
-pub async fn set_goal_status(
-    pool: &SqlitePool,
-    id: &str,
-    status: &str,
-) -> Result<(), sqlx::Error> {
+pub async fn set_goal_status(pool: &SqlitePool, id: &str, status: &str) -> Result<(), sqlx::Error> {
     debug_assert!(status == GOAL_OPEN || status == GOAL_CLOSED);
     sqlx::query("UPDATE goals SET status = ? WHERE id = ?")
         .bind(status)
@@ -298,7 +296,9 @@ mod tests {
             deadline: "2026-12-20".into(),
             accent: "amber".into(),
         };
-        insert_goal(&pool, "k3f9x2ab", &goal).await.expect("insert goal");
+        insert_goal(&pool, "k3f9x2ab", &goal)
+            .await
+            .expect("insert goal");
 
         for (hash, amount, pending) in [
             ("aa", "500000", false),
@@ -323,7 +323,10 @@ mod tests {
             .expect("insert contribution");
         }
 
-        let goal = goal_by_id(&pool, "k3f9x2ab").await.expect("query").expect("found");
+        let goal = goal_by_id(&pool, "k3f9x2ab")
+            .await
+            .expect("query")
+            .expect("found");
         assert_eq!(goal.raised_luna, 750_000);
         assert_eq!(goal.contributors_count, 1);
 
@@ -350,7 +353,9 @@ mod tests {
             deadline: "2026-12-20".into(),
             accent: "amber".into(),
         };
-        insert_goal(&pool, "k3f9x2ab", &goal).await.expect("insert goal");
+        insert_goal(&pool, "k3f9x2ab", &goal)
+            .await
+            .expect("insert goal");
 
         let row = NewContribution {
             goal_id: "k3f9x2ab",
@@ -363,7 +368,9 @@ mod tests {
             confirmations: 1,
             pending: false,
         };
-        insert_contribution(&pool, &row).await.expect("first insert");
+        insert_contribution(&pool, &row)
+            .await
+            .expect("first insert");
 
         let second = insert_contribution(&pool, &row).await;
         assert!(second.is_err());
