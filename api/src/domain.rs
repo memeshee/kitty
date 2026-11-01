@@ -19,7 +19,7 @@ const ADDRESS_ALPHABET: &[u8] = b"0123456789ABCDEFGHJKLMNPQRSTUVXY";
 const ADDRESS_LEN: usize = 36;
 
 pub const LUNA_PER_NIM: u64 = 100_000;
-pub const MIN_TARGET_LUNA: u64 = 100_000;
+pub const MIN_TARGET_LUNA: u64 = LUNA_PER_NIM;
 /// Keeps every total comfortably inside a SQLite INTEGER while still being absurdly
 /// larger than any jar (9e15 Luna = 90 billion NIM).
 pub const MAX_TARGET_LUNA: u64 = 9_000_000_000_000_000;
@@ -374,6 +374,8 @@ pub struct ContributionView {
     pub amount_luna: String,
     pub block_number: i64,
     pub confirmations: i64,
+    /// "confirmed" or "pending". Extra to the contract, additive and useful.
+    pub status: String,
     pub verified_at: String,
     pub explorer_url: String,
 }
@@ -392,6 +394,7 @@ impl ContributionView {
             amount_luna: row.amount_luna.clone(),
             block_number: row.block_number,
             confirmations: row.confirmations,
+            status: row.status.clone(),
             verified_at: row.verified_at.clone(),
             explorer_url: format!("{}{}", Self::EXPLORER_BASE, row.tx_hash),
         }

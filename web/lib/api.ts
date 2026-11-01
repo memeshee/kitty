@@ -91,9 +91,15 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T
 }
 
-/** Server components use the same client, with Next's revalidation window. */
+/** Server components use the same client, with Next's revalidation window.
+ *  A dead API must render as an honest failure state, never a 500 page. */
 async function read<T>(path: string, revalidate = 10): Promise<T> {
-  const res = await fetch(`${BASE}/v1${path}`, { next: { revalidate } })
+  let res: Response
+  try {
+    res = await fetch(`${BASE}/v1${path}`, { next: { revalidate } })
+  } catch {
+    throw new ApiError("network", "Kitty's index is unreachable right now.", 0)
+  }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
     const e = body?.error ?? {}

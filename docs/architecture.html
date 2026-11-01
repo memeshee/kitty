@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kitty architecture · where the money can go</title>
+<style>
+  :root {
+    --paper: #f4f0e6;
+    --paper-2: #fbf8f1;
+    --ink: #14261f;
+    --muted: #5f6f66;
+    --rule: rgba(20, 38, 31, 0.12);
+    --accent: #dd9a1e;
+    --link: #2f6f5e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Geist", "Geist Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page { max-width: 1080px; margin: 0 auto; padding: 48px 24px 64px; }
+  .eyebrow {
+    font-family: "Geist Mono", ui-monospace, monospace;
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted);
+  }
+  h1 { font-size: 30px; line-height: 1.1; letter-spacing: -0.02em; font-weight: 600; margin: 10px 0 0; }
+  .lede { margin: 10px 0 0; max-width: 62ch; color: var(--muted); font-size: 15px; line-height: 1.55; }
+  .frame { margin-top: 28px; overflow-x: auto; border: 1px solid var(--rule); border-radius: 8px; background: var(--paper-2); }
+  .frame svg { display: block; min-width: 1000px; }
+  .note { margin: 14px 0 0; font-family: "Geist Mono", ui-monospace, monospace; font-size: 11px; color: var(--muted); }
+</style>
+</head>
+<body>
+<main class="page">
+  <p class="eyebrow">Kitty · Nimiq Pay Mini App</p>
+  <h1>Where the money can go, and who can stop it</h1>
+  <p class="lede">
+    One rule decides everything: coins move from the giver's wallet to the owner's wallet on Nimiq.
+    Kitty's own servers only ever <em>read</em>. There is no line from our infrastructure to anyone's money,
+    because there is no such line to draw.
+  </p>
+
+  <div class="frame">
+    <svg viewBox="0 0 1000 520" role="img" aria-labelledby="kitty-arch-title kitty-arch-desc" xmlns="http://www.w3.org/2000/svg">
+      <title id="kitty-arch-title">Kitty architecture: payments bypass our servers</title>
+      <desc id="kitty-arch-desc">
+        The Kitty web app in Nimiq Pay asks the wallet to pay NIM to the goal owner's account on the Nimiq
+        mainnet. Our Rust API reads that transaction by hash and writes a receipts index. Money never
+        passes through our infrastructure.
+      </desc>
+      <defs>
+        <marker id="kitty-arch-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#5f6f66"></path>
+        </marker>
+        <marker id="kitty-arch-arrow-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#dd9a1e"></path>
+        </marker>
+        <marker id="kitty-arch-arrow-link" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#2f6f5e"></path>
+        </marker>
+      </defs>
+
+      <!-- zones first: background, then boundaries, then arrows, then nodes -->
+      <rect x="32" y="64" width="240" height="256" rx="8" fill="rgba(20,38,31,0.02)" stroke="rgba(20,38,31,0.10)" stroke-width="0.8"></rect>
+      <rect x="48" y="68" width="86" height="12" rx="2" fill="#fbf8f1"></rect>
+      <text x="91" y="77" fill="rgba(20,38,31,0.42)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.14em">ON THE PHONE</text>
+
+      <rect x="336" y="64" width="296" height="256" rx="8" fill="rgba(20,38,31,0.02)" stroke="rgba(20,38,31,0.10)" stroke-width="0.8"></rect>
+      <rect x="352" y="68" width="92" height="12" rx="2" fill="#fbf8f1"></rect>
+      <text x="398" y="77" fill="rgba(20,38,31,0.42)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.14em">NIMIQ MAINNET</text>
+
+      <rect x="696" y="64" width="272" height="256" rx="8" fill="rgba(20,38,31,0.02)" stroke="rgba(20,38,31,0.10)" stroke-width="0.8"></rect>
+      <rect x="712" y="68" width="48" height="12" rx="2" fill="#fbf8f1"></rect>
+      <text x="736" y="77" fill="rgba(20,38,31,0.42)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.14em">OURS</text>
+
+      <!-- arrows drawn before the boxes so strokes sit behind nodes -->
+      <!-- web asks wallet -->
+      <line x1="152" y1="176" x2="152" y2="196" stroke="#5f6f66" stroke-width="1.2" marker-end="url(#kitty-arch-arrow)"></line>
+
+      <!-- wallet pays the chain: money path, accent, routed through the gutter -->
+      <path d="M248,232 H312 Q320,232 320,224 V152 Q320,144 328,144 H356"
+            fill="none" stroke="#dd9a1e" stroke-width="1.6" marker-end="url(#kitty-arch-arrow-accent)"></path>
+      <rect x="248" y="206" width="58" height="14" fill="#f4f0e6"></rect>
+      <text x="277" y="216" fill="#8a6a1f" font-size="7.5" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.1em">PAYS NIM</text>
+
+      <!-- chain credits the owner: money path, accent -->
+      <line x1="484" y1="176" x2="484" y2="244" stroke="#dd9a1e" stroke-width="1.6" marker-end="url(#kitty-arch-arrow-accent)"></line>
+      <rect x="496" y="200" width="106" height="14" fill="#f4f0e6"></rect>
+      <text x="549" y="210" fill="#8a6a1f" font-size="7.5" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.1em">CREDITS THE OWNER</text>
+
+      <!-- api reads the chain by hash -->
+      <line x1="720" y1="144" x2="612" y2="144" stroke="#2f6f5e" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#kitty-arch-arrow-link)"></line>
+      <rect x="618" y="120" width="96" height="14" fill="#f4f0e6"></rect>
+      <text x="666" y="130" fill="#2f6f5e" font-size="7.5" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.1em">READS BY HASH</text>
+
+      <!-- api writes the index -->
+      <line x1="832" y1="176" x2="832" y2="244" stroke="#5f6f66" stroke-width="1.2" marker-end="url(#kitty-arch-arrow)"></line>
+      <rect x="844" y="200" width="48" height="14" fill="#f4f0e6"></rect>
+      <text x="868" y="210" fill="#5f6f66" font-size="7.5" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.1em">WRITES</text>
+
+      <!-- nodes -->
+      <rect x="56" y="112" width="192" height="64" rx="6" fill="#ffffff" stroke="rgba(20,38,31,0.22)" stroke-width="1"></rect>
+      <rect x="56" y="112" width="34" height="12" rx="2" fill="rgba(20,38,31,0.06)"></rect>
+      <text x="73" y="121" fill="#5f6f66" font-size="6.5" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.1em">WEB</text>
+      <text x="72" y="146" fill="#14261f" font-size="13" font-weight="600">Kitty web</text>
+      <text x="72" y="160" fill="#5f6f66" font-size="8" font-family="'Geist Mono', monospace">our goal page, in the WebView</text>
+
+      <rect x="56" y="200" width="192" height="64" rx="6" fill="#ffffff" stroke="rgba(20,38,31,0.22)" stroke-width="1"></rect>
+      <rect x="56" y="200" width="52" height="12" rx="2" fill="rgba(20,38,31,0.06)"></rect>
+      <text x="82" y="209" fill="#5f6f66" font-size="6.5" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.1em">WALLET</text>
+      <text x="72" y="234" fill="#14261f" font-size="13" font-weight="600">Nimiq Pay</text>
+      <text x="72" y="248" fill="#5f6f66" font-size="8" font-family="'Geist Mono', monospace">holds keys, approves, signs</text>
+
+      <rect x="360" y="112" width="248" height="64" rx="6" fill="#ffffff" stroke="rgba(20,38,31,0.22)" stroke-width="1"></rect>
+      <rect x="360" y="112" width="46" height="12" rx="2" fill="rgba(20,38,31,0.06)"></rect>
+      <text x="383" y="121" fill="#5f6f66" font-size="6.5" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.1em">LEDGER</text>
+      <text x="376" y="146" fill="#14261f" font-size="13" font-weight="600">Nimiq mainnet</text>
+      <text x="376" y="160" fill="#5f6f66" font-size="8" font-family="'Geist Mono', monospace">every coin, publicly readable</text>
+
+      <rect x="360" y="244" width="248" height="64" rx="6" fill="#14261f" stroke="#14261f" stroke-width="1"></rect>
+      <rect x="360" y="244" width="58" height="12" rx="2" fill="rgba(244,240,230,0.16)"></rect>
+      <text x="389" y="253" fill="#f4f0e6" font-size="6.5" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.1em">RECIPIENT</text>
+      <text x="376" y="278" fill="#f4f0e6" font-size="13" font-weight="600">Owner's wallet</text>
+      <text x="376" y="292" fill="rgba(244,240,230,0.68)" font-size="8" font-family="'Geist Mono', monospace">the only address that receives</text>
+
+      <rect x="720" y="112" width="224" height="64" rx="6" fill="#ffffff" stroke="rgba(20,38,31,0.22)" stroke-width="1"></rect>
+      <rect x="720" y="112" width="34" height="12" rx="2" fill="rgba(20,38,31,0.06)"></rect>
+      <text x="737" y="121" fill="#5f6f66" font-size="6.5" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.1em">API</text>
+      <text x="736" y="146" fill="#14261f" font-size="13" font-weight="600">Kitty API</text>
+      <text x="736" y="160" fill="#5f6f66" font-size="8" font-family="'Geist Mono', monospace">Rust, checks recipient, amount,</text>
+      <text x="736" y="170" fill="#5f6f66" font-size="8" font-family="'Geist Mono', monospace">memo and execution</text>
+
+      <rect x="720" y="244" width="224" height="64" rx="6" fill="#ffffff" stroke="rgba(20,38,31,0.22)" stroke-width="1"></rect>
+      <rect x="720" y="244" width="46" height="12" rx="2" fill="rgba(20,38,31,0.06)"></rect>
+      <text x="743" y="253" fill="#5f6f66" font-size="6.5" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.1em">INDEX</text>
+      <text x="736" y="278" fill="#14261f" font-size="13" font-weight="600">Receipts</text>
+      <text x="736" y="292" fill="#5f6f66" font-size="8" font-family="'Geist Mono', monospace">rebuildable from the chain</text>
+
+      <!-- one annotation: the rule that makes the picture true -->
+      <text x="32" y="372" fill="#5f6f66" font-size="11.5" font-style="italic">
+        The app only ever hands the API a transaction hash. The API believes the chain, never the app.
+        No arrow reaches our servers carrying money, and none carries a key.
+      </text>
+
+      <!-- legend: horizontal bottom strip -->
+      <line x1="32" y1="410" x2="968" y2="410" stroke="rgba(20,38,31,0.12)" stroke-width="0.8"></line>
+      <line x1="32" y1="446" x2="72" y2="446" stroke="#dd9a1e" stroke-width="1.6"></line>
+      <text x="80" y="449" fill="#14261f" font-size="8.5" font-family="'Geist Mono', monospace">MONEY PATH</text>
+      <line x1="196" y1="446" x2="236" y2="446" stroke="#2f6f5e" stroke-width="1" stroke-dasharray="4,3"></line>
+      <text x="244" y="449" fill="#14261f" font-size="8.5" font-family="'Geist Mono', monospace">READ BY HASH</text>
+      <line x1="368" y1="446" x2="408" y2="446" stroke="#5f6f66" stroke-width="1.2"></line>
+      <text x="416" y="449" fill="#14261f" font-size="8.5" font-family="'Geist Mono', monospace">OUR CALLS</text>
+      <rect x="532" y="439" width="14" height="14" rx="3" fill="#14261f"></rect>
+      <text x="554" y="449" fill="#14261f" font-size="8.5" font-family="'Geist Mono', monospace">MONEY LIVES HERE</text>
+    </svg>
+  </div>
+
+  <p class="note">Two minutes to verify: the goal page prints the owner's live balance next to the sum of its receipts.</p>
+</main>
+</body>
+</html>

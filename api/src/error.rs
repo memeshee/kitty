@@ -58,14 +58,6 @@ impl ApiError {
         )
     }
 
-    pub fn duplicate() -> Self {
-        Self::new(
-            StatusCode::CONFLICT,
-            "duplicate",
-            "this transaction is already recorded against a goal",
-        )
-    }
-
     pub fn internal(message: impl Into<String>) -> Self {
         Self::new(StatusCode::INTERNAL_SERVER_ERROR, "internal_error", message)
     }

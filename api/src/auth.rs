@@ -30,6 +30,20 @@ pub fn extract_bearer(headers: &axum::http::HeaderMap) -> Option<String> {
         .filter(|value| !value.is_empty())
 }
 
+/// Gate for owner-only writes. A missing header and a wrong token produce the same
+/// error on purpose: nothing here should help someone guess a token.
+pub fn require_owner(
+    headers: &axum::http::HeaderMap,
+    goal: &crate::domain::GoalRecord,
+) -> Result<(), crate::error::ApiError> {
+    let presented = extract_bearer(headers).ok_or_else(crate::error::ApiError::owner_token_invalid)?;
+    if token_matches(&presented, &goal.owner_token_hash) {
+        Ok(())
+    } else {
+        Err(crate::error::ApiError::owner_token_invalid())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
