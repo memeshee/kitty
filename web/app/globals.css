@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+/* Kitty design tokens. One accent, one theme family: deep forest ink on bone
+   paper with amber as the only accent. Brick exists for error text and nothing
+   else. No second hue, no gradients, no purple. */
+@theme {
+  --color-ink: #14261f;
+  --color-ink-soft: #2b3d34;
+  --color-slate: #5f6f66;
+  --color-paper: #f4f0e6;
+  --color-paper-deep: #e9e2d2;
+  --color-amber: #dd9a1e;
+  --color-amber-soft: #f6e3bd;
+  --color-brick: #a6473a;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono-jb), ui-monospace, monospace;
+
+  --radius-surface: 20px;
+  --radius-input: 12px;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  /* A WebView reports its own safe areas; never let content sit under a notch. */
+  padding-bottom: env(safe-area-inset-bottom);
+  overscroll-behavior-y: contain;
+}
+
+/* One focus treatment, used everywhere. */
+:where(a, button, input, textarea, select):focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Money and hashes are tabular so a changing amount never shifts the line. */
+.tnum {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* Motion is motivated: a new receipt arrives, the jar fills, a button presses.
+   Everything collapses when the user asks for less motion. */
+@keyframes kitty-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rise {
+  animation: kitty-rise 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise {
+    animation: none;
+  }
+  * {
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+  }
+}
