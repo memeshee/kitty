@@ -31,7 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${GeistSans.variable} ${mono.variable}`}>
       <body className="min-h-[100dvh] antialiased">
         <ToastProvider>
-          <div className="relative z-[1] mx-auto w-full max-w-[560px] px-5 pb-28">
+          <div className="relative z-[1] mx-auto w-full max-w-[560px] px-5 pb-40">
             <SiteHeader />
             {children}
           </div>

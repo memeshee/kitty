@@ -27,8 +27,8 @@ export default async function Home() {
           people fill.
         </h1>
         <p className="mt-3 max-w-[42ch] text-[15px] leading-relaxed text-ink-soft">
-          Name what you are saving for and share one link. Family chips in from their own phones. Every coin is a real
-          NIM payment, and the receipts are public.
+          Name what you are saving for and share one link. Family chips in from their own phones — one tap in Nimiq Pay,
+          or straight from any browser. Every coin is a real NIM payment, and the receipts are public.
         </p>
         <div className="mt-6 grid gap-2">
           <Link href="/create" className="stamp-button w-full">

@@ -15,6 +15,7 @@
 
 use axum::http::StatusCode;
 
+use crate::chain::ChainTx;
 use crate::db::{self, NewContribution};
 use crate::domain::{normalise_address, ContributionRow, GoalRecord};
 use crate::error::ApiError;
@@ -84,6 +85,21 @@ pub async fn verify_and_record(
         )
     })?;
 
+    apply_and_record(state, goal, &tx, display_name, note).await
+}
+
+/// Rules 2-7 applied to a transaction the caller has already read from the chain.
+///
+/// Shared by the client-reported path and the ledger sweep, so a payment the sweep
+/// discovered passes exactly the same checks as one the Mini App handed us. There is
+/// no shortcut in this function, and there must never be one.
+pub async fn apply_and_record(
+    state: &AppState,
+    goal: &GoalRecord,
+    tx: &ChainTx,
+    display_name: Option<&str>,
+    note: Option<&str>,
+) -> Result<Recorded, ApiError> {
     // 2. It must have been paid to the goal's owner.
     let recipient = tx.to.as_deref().map(normalise_address).unwrap_or_default();
     if recipient != goal.owner_address {
@@ -117,7 +133,7 @@ pub async fn verify_and_record(
 
     // 5. The amount is the chain's, never the caller's.
     if tx.value_luna.is_empty() || !tx.value_luna.bytes().all(|b| b.is_ascii_digit()) {
-        tracing::error!(tx_hash, value = %tx.value_luna, "chain returned a non-integer value");
+        tracing::error!(tx_hash = %tx.hash, value = %tx.value_luna, "chain returned a non-integer value");
         return Err(ApiError::internal("chain returned a non-integer value"));
     }
 
@@ -153,6 +169,24 @@ pub async fn verify_and_record(
     };
 
     Ok(Recorded { row, pending })
+}
+
+/// The sweep's entry point. Returns `true` when it recorded something new.
+///
+/// A transaction the index already knows, or one that is not a payment for this jar
+/// (wrong recipient, foreign memo, failed execution), is simply not news: the sweep
+/// reports it and moves on rather than failing the page render over it.
+pub async fn sweep_record(
+    state: &AppState,
+    goal: &GoalRecord,
+    tx: &ChainTx,
+) -> Result<bool, ApiError> {
+    match apply_and_record(state, goal, tx, None, None).await {
+        Ok(_) => Ok(true),
+        Err(err) if err.code == CODE_DUPLICATE => Ok(false),
+        Err(err) if err.status == StatusCode::UNPROCESSABLE_ENTITY => Ok(false),
+        Err(err) => Err(err),
+    }
 }
 
 #[cfg(test)]

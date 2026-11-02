@@ -92,6 +92,50 @@ pub async fn create_contribution(
     Ok(response)
 }
 
+/// `GET /contributions/{hash}`: one receipt, resolved by the chain's own hash.
+///
+/// A receipt is the artifact a contributor can forward into the group chat, so it
+/// has to be readable by anyone, forever, without an account. The hash is the key:
+/// if the index has it, this returns the payment exactly as it was verified.
+pub async fn get_contribution(
+    State(state): State<AppState>,
+    Path(hash): Path<String>,
+) -> Result<Json<ReceiptEnvelope>, ApiError> {
+    let tx_hash = hash.trim().to_ascii_lowercase();
+    if tx_hash.len() != 64 || !tx_hash.bytes().all(|b| b.is_ascii_hexdigit()) {
+        return Err(ApiError::new(
+            StatusCode::NOT_FOUND,
+            "receipt_not_found",
+            "no receipt with that hash",
+        ));
+    }
+
+    let row = db::contribution_by_hash(&state.db, &tx_hash)
+        .await?
+        .ok_or_else(|| {
+            ApiError::new(
+                StatusCode::NOT_FOUND,
+                "receipt_not_found",
+                "no receipt with that hash",
+            )
+        })?;
+
+    let goal = db::goal_by_id(&state.db, &row.goal_id)
+        .await?
+        .ok_or_else(|| ApiError::goal_not_found(&row.goal_id))?;
+
+    Ok(Json(ReceiptEnvelope {
+        contribution: ContributionView::from_row(&row),
+        goal: GoalView::from_record(&goal, &state.config),
+    }))
+}
+
+#[derive(Debug, Serialize)]
+pub struct ReceiptEnvelope {
+    pub contribution: ContributionView,
+    pub goal: GoalView,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

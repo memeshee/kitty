@@ -70,8 +70,9 @@ export function nextStep(input: {
     return {
       key: "chipin",
       title: "Chip in",
-      body: "Open this page in Nimiq Pay and the jar becomes payable in one tap.",
+      body: "Any amount, from your own Nimiq wallet. In a browser it opens Nimiq's wallet; inside Nimiq Pay it is one tap.",
       target: "chipin",
+      cta: "Chip in",
     }
   }
 

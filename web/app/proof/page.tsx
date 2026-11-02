@@ -1,21 +1,29 @@
 import Link from "next/link"
-import { api } from "@/lib/api"
+import { api, type Ledger } from "@/lib/api"
 import { lunaToNim, when } from "@/lib/format"
 import { readPace } from "@/lib/pace"
 import { Slip, StatusChip } from "@/components/kit"
+import { LedgerSlip } from "@/components/LedgerSlip"
 
 export const dynamic = "force-dynamic"
 
 export default async function ProofPage() {
   let stats = null
+  let ledger: Ledger | null = null
   let goals: Awaited<ReturnType<typeof api.recentGoals>>["goals"] = []
   let down = false
+  let ledgerDown = false
   try {
     const [s, g] = await Promise.all([api.getStats(), api.recentGoals()])
     stats = s
     goals = g.goals.slice(0, 6)
   } catch {
     down = true
+  }
+  try {
+    ledger = await api.getLedger()
+  } catch {
+    ledgerDown = true
   }
 
   return (
@@ -52,6 +60,11 @@ export default async function ProofPage() {
           </p>
         </Slip>
       ) : null}
+
+      <section className="mt-8">
+        <p className="eyebrow">Usage, counted from payments</p>
+        <LedgerSlip ledger={ledger} down={ledgerDown} />
+      </section>
 
       <section className="mt-8">
         <p className="eyebrow">What a receipt has to pass</p>

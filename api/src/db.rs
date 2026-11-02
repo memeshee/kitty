@@ -100,7 +100,7 @@ pub async fn goals_by_owner(
         Some(owner) => {
             let sql = format!(
                 "SELECT {GOAL_COLUMNS} {GOAL_FROM}
-                 WHERE g.owner_address = ?
+                 WHERE g.owner_address = ? AND g.hidden = 0
                  GROUP BY g.id
                  ORDER BY g.created_at DESC, g.rowid DESC
                  LIMIT ?"
@@ -114,6 +114,7 @@ pub async fn goals_by_owner(
         None => {
             let sql = format!(
                 "SELECT {GOAL_COLUMNS} {GOAL_FROM}
+                 WHERE g.hidden = 0
                  GROUP BY g.id
                  ORDER BY g.created_at DESC, g.rowid DESC
                  LIMIT ?"
@@ -124,6 +125,17 @@ pub async fn goals_by_owner(
                 .await
         }
     }
+}
+
+/// Takes a jar in or out of the public list. The jar, its receipts and its hashes
+/// stay exactly where they are: hiding is a listing decision, never a data one.
+pub async fn set_goal_hidden(pool: &SqlitePool, id: &str, hidden: bool) -> Result<(), sqlx::Error> {
+    sqlx::query("UPDATE goals SET hidden = ? WHERE id = ?")
+        .bind(i64::from(hidden))
+        .bind(id)
+        .execute(pool)
+        .await
+        .map(|_| ())
 }
 
 pub async fn set_goal_status(pool: &SqlitePool, id: &str, status: &str) -> Result<(), sqlx::Error> {
@@ -200,6 +212,80 @@ pub async fn contributions_for_goal(
     .bind(goal_id)
     .fetch_all(pool)
     .await
+}
+
+/// One receipt, by the hash the chain gave it. A shared receipt link resolves
+/// against this: the hash is the address of the proof.
+pub async fn contribution_by_hash(
+    pool: &SqlitePool,
+    tx_hash: &str,
+) -> Result<Option<ContributionRow>, sqlx::Error> {
+    sqlx::query_as::<_, ContributionRow>(
+        r#"SELECT id, goal_id, tx_hash, contributor_address, display_name, note,
+                  amount_luna, block_number, confirmations, status, verified_at
+           FROM contributions
+           WHERE tx_hash = ?
+           LIMIT 1"#,
+    )
+    .bind(tx_hash)
+    .fetch_optional(pool)
+    .await
+}
+
+/// A receipt with the name of the jar it landed in, for the public ledger.
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct RecentContributionRow {
+    pub tx_hash: String,
+    pub goal_id: String,
+    pub goal_title: String,
+    pub contributor_address: String,
+    pub display_name: Option<String>,
+    pub amount_luna: String,
+    pub verified_at: String,
+}
+
+pub async fn recent_contributions(
+    pool: &SqlitePool,
+    limit: i64,
+) -> Result<Vec<RecentContributionRow>, sqlx::Error> {
+    sqlx::query_as::<_, RecentContributionRow>(
+        r#"SELECT c.tx_hash, c.goal_id, g.title AS goal_title, c.contributor_address,
+                  c.display_name, c.amount_luna, c.verified_at
+           FROM contributions c
+           JOIN goals g ON g.id = c.goal_id
+           WHERE c.status = 'confirmed'
+           ORDER BY c.id DESC
+           LIMIT ?"#,
+    )
+    .bind(limit)
+    .fetch_all(pool)
+    .await
+}
+
+/// Every wallet that has put a confirmed coin in a jar, as the chain named it.
+///
+/// This is the number the competition scores and the number a stranger can recount
+/// from the receipts themselves, so it is published rather than described.
+pub async fn distinct_wallets(pool: &SqlitePool, limit: i64) -> Result<Vec<String>, sqlx::Error> {
+    let rows: Vec<(String,)> = sqlx::query_as(
+        r#"SELECT contributor_address
+           FROM contributions
+           WHERE status = 'confirmed'
+           GROUP BY contributor_address
+           ORDER BY MIN(id) DESC
+           LIMIT ?"#,
+    )
+    .bind(limit)
+    .fetch_all(pool)
+    .await?;
+    Ok(rows.into_iter().map(|(address,)| address).collect())
+}
+
+pub async fn visible_goal_count(pool: &SqlitePool) -> Result<i64, sqlx::Error> {
+    let row: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM goals WHERE hidden = 0")
+        .fetch_one(pool)
+        .await?;
+    Ok(row.0)
 }
 
 #[derive(Debug, Clone, sqlx::FromRow)]

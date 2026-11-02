@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
 import type { Metadata } from "next"
+import QRCode from "qrcode"
 import { api, ApiError, type GoalDetail } from "@/lib/api"
 import { GoalView } from "@/components/GoalView"
 import { JarCard } from "@/components/JarCard"
@@ -14,6 +15,22 @@ async function load(id: string): Promise<Loaded> {
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) return { kind: "missing" }
     return { kind: "down" }
+  }
+}
+
+/** A QR of the jar's own share URL, drawn on the server so the markup and the flyer
+ *  can never disagree about where they point. */
+async function shareQr(id: string): Promise<string | undefined> {
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://kitty-one-orpin.vercel.app"
+  try {
+    return await QRCode.toString(`${base}/g/${id}`, {
+      type: "svg",
+      margin: 0,
+      errorCorrectionLevel: "M",
+      color: { dark: "#14261f", light: "#00000000" },
+    })
+  } catch {
+    return undefined
   }
 }
 
@@ -58,5 +75,5 @@ export default async function GoalPage({ params }: { params: Promise<{ id: strin
     )
   }
 
-  return <GoalView initial={r.detail} />
+  return <GoalView initial={r.detail} qrSvg={await shareQr(id)} />
 }

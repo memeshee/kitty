@@ -48,7 +48,7 @@ export function NextStepCard({
       {step.cta ? (
         <Button
           variant={step.key === "chipin" ? "ink" : "amber"}
-          className="mt-3 w-full"
+          className="mt-3 hidden w-full md:flex"
           onClick={() => {
             if (onPrimary) onPrimary()
             if (step.target) document.getElementById(step.target)?.scrollIntoView({ behavior: "smooth", block: "center" })

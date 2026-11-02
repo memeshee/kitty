@@ -14,6 +14,7 @@ mod domain;
 mod error;
 mod routes;
 mod state;
+mod sweep;
 mod verifier;
 
 #[cfg(test)]

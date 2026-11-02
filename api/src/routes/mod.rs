@@ -3,6 +3,7 @@
 pub mod contributions;
 pub mod goals;
 pub mod health;
+pub mod ledger;
 pub mod stats;
 pub mod thanks;
 
@@ -37,8 +38,14 @@ pub fn app(state: AppState) -> Router {
                     "/goals/{id}/contributions",
                     post(contributions::create_contribution),
                 )
+                .route("/contributions/{hash}", get(contributions::get_contribution))
+                .route("/ledger", get(ledger::ledger))
                 .route("/goals/{id}/thanks", post(thanks::create_thanks))
                 .route("/goals/{id}/close", post(goals::close_goal))
+                .route(
+                    "/admin/goals/{id}/visibility",
+                    post(goals::set_goal_visibility),
+                )
                 .route("/stats", get(stats::stats)),
         )
         .fallback(not_found)
@@ -58,6 +65,7 @@ fn cors_layer(cfg: &Config) -> CorsLayer {
             header::CONTENT_TYPE,
             header::ACCEPT,
             HeaderName::from_static("x-owner-token"),
+            HeaderName::from_static("x-admin-token"),
         ])
         .max_age(Duration::from_secs(600));
 

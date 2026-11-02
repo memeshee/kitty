@@ -178,22 +178,47 @@ impl ChainClient {
             Some(data) => data,
         };
 
-        let raw: RawTx = serde_json::from_value(data.clone())
-            .map_err(|err| ChainError::Decode(err.to_string()))?;
+        Ok(Some(decode_tx(data)?))
+    }
 
-        let value_luna = amount_string(raw.value.as_ref())
-            .ok_or_else(|| ChainError::Decode("transaction value was not an integer".into()))?;
+    /// Every transaction touching `address`, newest first, as the node reports it.
+    ///
+    /// This is what lets the index repair itself: a payment whose client never came
+    /// back to report it (crash, dropped connection, a person paying from the wallet
+    /// directly with the memo) is still discoverable from the chain alone.
+    pub async fn get_transactions_by_address(
+        &self,
+        address: &str,
+        max: u32,
+    ) -> Result<Vec<ChainTx>, ChainError> {
+        let result = match self
+            .call("getTransactionsByAddress", json!([address, max, null]))
+            .await
+        {
+            Ok(result) => result,
+            Err(err) if err.is_not_found() => return Ok(Vec::new()),
+            Err(err) => return Err(err),
+        };
 
-        Ok(Some(ChainTx {
-            hash: raw.hash,
-            from: raw.from.unwrap_or_default(),
-            to: raw.to.map(|to| crate::domain::normalise_address(&to)),
-            value_luna,
-            block_number: raw.block_number.unwrap_or(0),
-            confirmations: raw.confirmations.unwrap_or(0),
-            recipient_data: raw.recipient_data.unwrap_or_default(),
-            execution_result: raw.execution_result.unwrap_or(false),
-        }))
+        let items = match result.get("data") {
+            Some(Value::Null) | None => return Ok(Vec::new()),
+            Some(Value::Array(items)) => items,
+            Some(_) => {
+                return Err(ChainError::Decode(
+                    "getTransactionsByAddress returned a non-list".into(),
+                ))
+            }
+        };
+
+        let mut out = Vec::with_capacity(items.len());
+        for item in items {
+            match decode_tx(item) {
+                Ok(tx) => out.push(tx),
+                // One malformed entry must not hide the rest of the address history.
+                Err(err) => debug!(error = %err, "skipping an undecodable transaction"),
+            }
+        }
+        Ok(out)
     }
 
     /// An account that has never received NIM is reported by the node as an error;
@@ -269,6 +294,27 @@ impl ChainClient {
 
         Ok(fresh)
     }
+}
+
+/// One transaction as the node reported it. Shared by the single-hash read and the
+/// by-address read so both apply exactly the same decoding rules.
+fn decode_tx(data: &Value) -> Result<ChainTx, ChainError> {
+    let raw: RawTx = serde_json::from_value(data.clone())
+        .map_err(|err| ChainError::Decode(err.to_string()))?;
+
+    let value_luna = amount_string(raw.value.as_ref())
+        .ok_or_else(|| ChainError::Decode("transaction value was not an integer".into()))?;
+
+    Ok(ChainTx {
+        hash: raw.hash,
+        from: raw.from.unwrap_or_default(),
+        to: raw.to.map(|to| crate::domain::normalise_address(&to)),
+        value_luna,
+        block_number: raw.block_number.unwrap_or(0),
+        confirmations: raw.confirmations.unwrap_or(0),
+        recipient_data: raw.recipient_data.unwrap_or_default(),
+        execution_result: raw.execution_result.unwrap_or(false),
+    })
 }
 
 /// Accepts a JSON number or a decimal string, refuses anything else. A float here

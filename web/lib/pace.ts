@@ -17,7 +17,7 @@ export type Pace = {
   daysOpen: number
   /** NIM per day raised so far, floored to a whole NIM */
   perDay: number
-  /** NIM per day still needed to land exactly on the deadline */
+  /** NIM per day still needed to land exactly on the deadline, fractional */
   neededPerDay: number
   /** NIM short at the current pace when the deadline arrives (0 when on track) */
   shortfall: number
@@ -27,6 +27,15 @@ export type Pace = {
 }
 
 const DAY = 86_400_000
+
+/** A rate, not an amount: two decimals below 1 NIM, and never "1" for 0.17.
+ *  Rounding a daily rate up to a whole coin made small jars look broken. */
+export function rate(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) return "0"
+  if (value >= 10) return value.toLocaleString("en-US", { maximumFractionDigits: 0 })
+  if (value >= 1) return value.toLocaleString("en-US", { maximumFractionDigits: 1 })
+  return value.toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: 2 })
+}
 
 export function readPace(goal: Goal, now = Date.now()): Pace {
   const raised = BigInt(goal.raised_luna || "0")
@@ -42,7 +51,9 @@ export function readPace(goal: Goal, now = Date.now()): Pace {
   const wholeTarget = Number(target / 100_000n)
   const remaining = Math.max(0, wholeTarget - wholeRaised)
   const perDay = Math.floor(wholeRaised / daysOpen)
-  const neededPerDay = daysLeft > 0 ? Math.ceil(remaining / daysLeft) : remaining
+  // Fractional on purpose: 5 NIM over 30 days is 0.17 a day, and printing "1 a day"
+  // next to a 5 NIM target is the kind of arithmetic a reader stops trusting.
+  const neededPerDay = daysLeft > 0 ? remaining / daysLeft : remaining
 
   const projected = wholeRaised + perDay * Math.max(0, daysLeft)
   const shortfall = Math.max(0, wholeTarget - projected)
@@ -65,7 +76,9 @@ export function readPace(goal: Goal, now = Date.now()): Pace {
     shortfall,
     onTrack,
     verdict: justOpened
-      ? `Just opened. ${neededPerDay.toLocaleString("en-US")} NIM a day fills it by the date.`
+      ? daysLeft > 0
+        ? `Just opened. ${rate(neededPerDay)} NIM a day fills it by the date.`
+        : "Just opened. Any amount is the first receipt."
       : verdictFor({ phase, percent, daysLeft, remaining, perDay, neededPerDay, shortfall }),
   }
 }
@@ -79,7 +92,7 @@ function verdictFor(i: {
   neededPerDay: number
   shortfall: number
 }): string {
-  const n = (v: number) => v.toLocaleString("en-US")
+  const n = (v: number) => v.toLocaleString("en-US", { maximumFractionDigits: 2 })
   switch (i.phase) {
     case "met":
       return "The goal is met. Every coin is already in the owner's wallet."
@@ -99,7 +112,7 @@ function verdictFor(i: {
   }
   if (i.daysLeft <= 0) return `The date passed with ${n(i.remaining)} NIM to go.`
   if (i.shortfall > 0) {
-    return `At this pace the jar lands ${n(i.shortfall)} NIM short. It needs ${n(i.neededPerDay)} NIM a day.`
+    return `At this pace the jar lands ${n(i.shortfall)} NIM short. It needs ${rate(i.neededPerDay)} NIM a day.`
   }
-  return `On pace: ${n(i.perDay)} NIM a day so far, ${n(i.neededPerDay)} needed.`
+  return `On pace: ${n(i.perDay)} NIM a day so far, ${rate(i.neededPerDay)} needed.`
 }

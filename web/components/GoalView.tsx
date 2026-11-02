@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import type { Contribution, GoalDetail } from "@/lib/api"
 import { cn } from "@/lib/cn"
 import { readPace } from "@/lib/pace"
@@ -17,8 +17,9 @@ import { OwnerTools } from "@/components/OwnerTools"
 import { StickyBar } from "@/components/StickyBar"
 import { Slip } from "@/components/kit"
 
-export function GoalView({ initial }: { initial: GoalDetail }) {
+export function GoalView({ initial, qrSvg }: { initial: GoalDetail; qrSvg?: string }) {
   const [detail, setDetail] = useState<GoalDetail>(initial)
+  const [newCount, setNewCount] = useState(0)
   const wallet = useWallet()
   const { goal, contributions, thanks, reconciliation, stats } = detail
 
@@ -28,6 +29,18 @@ export function GoalView({ initial }: { initial: GoalDetail }) {
     () => nextStep({ goal, pace, viewerAddress: wallet.address, isOwner, contributions }),
     [goal, pace, wallet.address, isOwner, contributions],
   )
+
+  // A returning visitor is the only signal the platform cannot push, so the page
+  // remembers what this browser last saw and says so.
+  useEffect(() => {
+    const key = `kitty:seen:${goal.id}`
+    const newest = contributions.reduce((max, c) => (c.id > max ? c.id : max), 0)
+    const seen = Number(window.localStorage.getItem(key) ?? "0")
+    if (seen > 0 && newest > seen) {
+      setNewCount(contributions.filter((c) => c.id > seen).length)
+    }
+    if (newest > 0) window.localStorage.setItem(key, String(newest))
+  }, [goal.id, contributions])
 
   function onPaid(contribution: Contribution, raised: string) {
     setDetail((d) => ({
@@ -80,6 +93,12 @@ export function GoalView({ initial }: { initial: GoalDetail }) {
         />
       </div>
 
+      {newCount > 0 ? (
+        <p className="mt-3 rounded-[8px] border-[1.5px] border-ink/15 bg-amber-wash/70 px-3 py-2 text-[12.5px] leading-relaxed text-ink">
+          {newCount === 1 ? "One new receipt since you last looked." : `${newCount} new receipts since you last looked.`}
+        </p>
+      ) : null}
+
       {goal.status === "open" && pace.phase !== "met" ? (
         <div className="mt-4">
           <ChipIn goal={goal} onPaid={onPaid} />
@@ -87,7 +106,7 @@ export function GoalView({ initial }: { initial: GoalDetail }) {
       ) : null}
 
       <div className="mt-4">
-        <ShareCard goalId={goal.id} title={goal.title} />
+        <ShareCard goalId={goal.id} title={goal.title} qrSvg={qrSvg} />
       </div>
 
       <Slip as="section" className="mt-4 p-4">

@@ -62,6 +62,27 @@ export type Stats = {
   verified_at: string
 }
 
+/** The public usage ledger: the number the world can recount for itself. */
+export type LedgerReceipt = {
+  tx_hash: string
+  goal_id: string
+  goal_title: string
+  contributor_address: string
+  display_name: string | null
+  amount_luna: string
+  verified_at: string
+}
+
+export type Ledger = {
+  goals: number
+  contributions: number
+  distinct_wallets: number
+  total_luna: string
+  wallets: string[]
+  recent: LedgerReceipt[]
+  generated_at: string
+}
+
 export class ApiError extends Error {
   code: string
   status: number
@@ -115,6 +136,10 @@ export const api = {
   getGoalFresh: (id: string) => call<GoalDetail>(`/goals/${id}`),
   listGoals: (owner: string) => call<{ goals: Goal[] }>(`/goals?owner=${encodeURIComponent(owner)}`),
   getStats: () => read<Stats>(`/stats`, 30),
+  /** The published ledger: wallets, receipts and hashes, recounted by anyone. */
+  getLedger: () => read<Ledger>(`/ledger`, 5),
+  /** One receipt, by the hash the chain gave it. */
+  getReceipt: (hash: string) => read<{ contribution: Contribution; goal: Goal }>(`/contributions/${hash}`, 5),
   /** Newest public jars, for the home page. Revalidated, since it is a server read. */
   recentGoals: () => read<{ goals: Goal[] }>(`/goals`, 20),
   createGoal: (input: {

@@ -61,7 +61,7 @@ export function JarCard({
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
           <span className="tnum text-[30px] leading-none font-medium">{percent}%</span>
           <span className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-faint">
-            {pace.phase === "met" ? "filled" : "filled"}
+            {pace.phase === "met" ? "the goal is met" : "filled"}
           </span>
           {percent >= 100 ? <div className="mt-2"><Stamp>Full</Stamp></div> : null}
         </div>
@@ -90,7 +90,9 @@ export function JarCard({
               <BackerTag name={`+${uniqueBackers.length - shown.length}`} seed="more" />
             ) : null}
             {uniqueBackers.length === 0 ? (
-              <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-ink-faint">no backers yet</span>
+              <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-ink-soft">
+                {pace.phase === "closed" ? "closed, no backers" : "be the first"}
+              </span>
             ) : null}
           </div>
           <p className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink-soft">

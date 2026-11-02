@@ -1,9 +1,13 @@
+"use client"
+
+import Link from "next/link"
 import type { Contribution } from "@/lib/api"
 import { cn } from "@/lib/cn"
 import { lunaToNim, shortAddress, shortHash, when } from "@/lib/format"
 
-/** One printed line per payment, linked to the transaction that proves it.
- *  Paper rules, mono type, no cards: this is a receipt roll, not a feed. */
+/** One printed line per payment. The whole line opens the receipt page for that
+ *  hash, because a receipt is the thing people forward; the chain link lives one
+ *  click further in, where the explorer belongs. */
 export function ReceiptList({ contributions }: { contributions: Contribution[] }) {
   if (!contributions.length) {
     return (
@@ -16,10 +20,8 @@ export function ReceiptList({ contributions }: { contributions: Contribution[] }
     <ol className="divide-y divide-ink/10">
       {contributions.map((c, i) => (
         <li key={c.tx_hash} className="animate-print-in" style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}>
-          <a
-            href={c.explorer_url}
-            target="_blank"
-            rel="noreferrer noopener"
+          <Link
+            href={`/r/${c.tx_hash}`}
             className="group grid grid-cols-[1fr_auto] items-baseline gap-x-3 gap-y-0.5 py-2.5 transition-colors hover:bg-amber-wash/50"
           >
             <span className="truncate text-[13.5px]">
@@ -33,7 +35,7 @@ export function ReceiptList({ contributions }: { contributions: Contribution[] }
             <span className="justify-self-end font-mono text-[10.5px] uppercase tracking-[0.08em] text-ink-faint group-hover:text-ink">
               {when(c.verified_at ?? new Date().toISOString())}
             </span>
-          </a>
+          </Link>
         </li>
       ))}
     </ol>

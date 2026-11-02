@@ -27,6 +27,9 @@ pub struct Config {
     /// Prefix used to build `share_url` for a goal.
     pub web_base_url: String,
     pub network: String,
+    /// When set, `POST /v1/admin/goals/{id}/visibility` works. Unset means the
+    /// endpoint does not exist at all, which is the right default for a public API.
+    pub admin_token: Option<String>,
 }
 
 impl Default for Config {
@@ -38,6 +41,7 @@ impl Default for Config {
             allowed_origins: vec![DEFAULT_ALLOWED_ORIGINS.to_string()],
             web_base_url: DEFAULT_WEB_BASE_URL.to_string(),
             network: DEFAULT_NETWORK.to_string(),
+            admin_token: None,
         }
     }
 }
@@ -75,6 +79,9 @@ impl Config {
         }
         if let Some(raw) = non_empty("NIMIQ_NETWORK") {
             cfg.network = raw;
+        }
+        if let Some(raw) = non_empty("ADMIN_TOKEN") {
+            cfg.admin_token = Some(raw);
         }
 
         Ok(cfg)

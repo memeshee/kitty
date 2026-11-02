@@ -14,6 +14,7 @@ use crate::domain::{
 };
 use crate::error::ApiError;
 use crate::state::AppState;
+use crate::sweep;
 
 const MAX_GOALS_LISTED: i64 = 50;
 const GOAL_ID_ATTEMPTS: usize = 8;
@@ -85,6 +86,16 @@ pub async fn get_goal(
         return Err(ApiError::goal_not_found(&id));
     }
 
+    let record = db::goal_by_id(&state.db, &id)
+        .await?
+        .ok_or_else(|| ApiError::goal_not_found(&id))?;
+
+    // Self-repair before the page is composed, so a payment whose client never
+    // reported back is already in the receipts on this load, not the next one.
+    // Bounded to one chain read per goal per SWEEP_INTERVAL.
+    sweep::sweep_goal(&state, &record).await;
+
+    // Re-read: the sweep may have added rows, and the aggregates come from them.
     let record = db::goal_by_id(&state.db, &id)
         .await?
         .ok_or_else(|| ApiError::goal_not_found(&id))?;
@@ -163,6 +174,75 @@ pub async fn close_goal(
     Ok(Json(GoalEnvelope {
         goal: GoalView::from_record(&record, &state.config),
     }))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct VisibilityRequest {
+    pub hidden: bool,
+}
+
+/// `POST /admin/goals/{id}/visibility`: take a jar in or out of the public list.
+///
+/// Guarded by `ADMIN_TOKEN`. When that is unset the route answers 404 rather than
+/// pretending to be a disabled endpoint, so a deployment without an operator token
+/// has no admin surface at all. Hiding never touches receipts: it only decides
+/// whether the jar is advertised on the front page.
+pub async fn set_goal_visibility(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    headers: HeaderMap,
+    body: Result<Json<VisibilityRequest>, JsonRejection>,
+) -> Result<Json<GoalEnvelope>, ApiError> {
+    let expected = match state.config.admin_token.as_deref() {
+        Some(token) => token,
+        None => {
+            return Err(ApiError::new(
+                StatusCode::NOT_FOUND,
+                "not_found",
+                "no such endpoint",
+            ))
+        }
+    };
+
+    let presented = headers
+        .get("x-admin-token")
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or_default();
+    if !constant_time_eq(presented.as_bytes(), expected.as_bytes()) {
+        return Err(ApiError::new(
+            StatusCode::FORBIDDEN,
+            "admin_token_invalid",
+            "X-Admin-Token does not match",
+        ));
+    }
+
+    if !domain::is_valid_goal_id(&id) {
+        return Err(ApiError::goal_not_found(&id));
+    }
+    db::goal_by_id(&state.db, &id)
+        .await?
+        .ok_or_else(|| ApiError::goal_not_found(&id))?;
+
+    db::set_goal_hidden(&state.db, &id, body?.0.hidden).await?;
+
+    let record = db::goal_by_id(&state.db, &id)
+        .await?
+        .ok_or_else(|| ApiError::goal_not_found(&id))?;
+    Ok(Json(GoalEnvelope {
+        goal: GoalView::from_record(&record, &state.config),
+    }))
+}
+
+/// Length-checked comparison that does not return early on the first wrong byte.
+fn constant_time_eq(left: &[u8], right: &[u8]) -> bool {
+    if left.len() != right.len() {
+        return false;
+    }
+    let mut difference = 0u8;
+    for (a, b) in left.iter().zip(right) {
+        difference |= a ^ b;
+    }
+    difference == 0
 }
 
 /// Reads the owner's real balance and compares it with what we indexed.

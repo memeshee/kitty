@@ -15,6 +15,15 @@ export function OwnerTools({ goal }: { goal: Goal }) {
   const [err, setErr] = useState<string | null>(null)
 
   useEffect(() => {
+    // A manage link carries the owner token in the URL once, then it lives in this
+    // browser like it always did. It buys thank-yous and closing, never money.
+    const fromUrl = new URLSearchParams(window.location.search).get("owner")
+    if (fromUrl) {
+      window.localStorage.setItem(ownerKey(goal.id), fromUrl)
+      const clean = new URL(window.location.href)
+      clean.searchParams.delete("owner")
+      window.history.replaceState({}, "", clean.toString())
+    }
     setToken(window.localStorage.getItem(ownerKey(goal.id)))
   }, [goal.id])
 

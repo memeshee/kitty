@@ -28,6 +28,7 @@ pub struct StubChain {
 #[derive(Default)]
 struct StubInner {
     tx: Option<Value>,
+    address_txs: Vec<Value>,
     account: Option<Value>,
     account_block: i64,
     calls: HashMap<String, usize>,
@@ -36,6 +37,11 @@ struct StubInner {
 impl StubChain {
     pub fn set_tx(&self, tx: Value) {
         self.lock().tx = Some(tx);
+    }
+
+    /// The history `getTransactionsByAddress` reports for any address.
+    pub fn set_address_txs(&self, txs: Vec<Value>) {
+        self.lock().address_txs = txs;
     }
 
     pub fn clear_tx(&self) {
@@ -120,6 +126,10 @@ async fn rpc_handler(State(stub): State<StubChain>, body: String) -> (StatusCode
                 "error": {"code": -32603, "message": "Internal error", "data": "Account not found"}
             }),
         },
+        "getTransactionsByAddress" => json!({
+            "data": inner.address_txs.clone(),
+            "metadata": null
+        }),
         other => json!({
             "error": {"code": -32601, "message": format!("Method not found: {other}")}
         }),
