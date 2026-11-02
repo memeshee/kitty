@@ -181,6 +181,42 @@ pub struct VisibilityRequest {
     pub hidden: bool,
 }
 
+/// `POST /goals/{id}/edit`: the owner fixes what they typed.
+///
+/// A jar is three fields typed on a phone, and a typo in the title is the sort of
+/// thing that makes someone delete a collection and start again. The token decides
+/// who may edit; the ledger is untouched, because nothing here can move a coin.
+pub async fn edit_goal(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    headers: HeaderMap,
+    body: Result<Json<domain::UpdateGoalRequest>, JsonRejection>,
+) -> Result<Json<GoalEnvelope>, ApiError> {
+    let record = db::goal_by_id(&state.db, &id)
+        .await?
+        .ok_or_else(|| ApiError::goal_not_found(&id))?;
+    auth::require_owner(&headers, &record)?;
+
+    let edit = body?.0.validate(chrono::Utc::now().date_naive())?;
+
+    db::replace_goal_fields(
+        &state.db,
+        &id,
+        edit.title.as_deref().unwrap_or(&record.title),
+        edit.story.as_deref().unwrap_or(&record.story),
+        edit.target_luna.as_deref().unwrap_or(&record.target_luna),
+        edit.deadline.as_deref().unwrap_or(&record.deadline),
+    )
+    .await?;
+
+    let record = db::goal_by_id(&state.db, &id)
+        .await?
+        .ok_or_else(|| ApiError::goal_not_found(&id))?;
+    Ok(Json(GoalEnvelope {
+        goal: GoalView::from_record(&record, &state.config),
+    }))
+}
+
 /// `POST /admin/goals/{id}/visibility`: take a jar in or out of the public list.
 ///
 /// Guarded by `ADMIN_TOKEN`. When that is unset the route answers 404 rather than
@@ -413,6 +449,60 @@ mod tests {
         let (status, body) = request(&app, Method::GET, "/v1/goals/nope!", None, &[]).await;
         assert_eq!(status, StatusCode::NOT_FOUND);
         assert_eq!(body["error"]["code"], "goal_not_found");
+    }
+
+    #[tokio::test]
+    async fn an_owner_can_fix_a_typo_and_nobody_else_can() {
+        let (state, _stub) = test_state("edit_goal").await;
+        let app = crate::routes::app(state);
+        let goal = create_goal(&app, TEST_OWNER, TEST_TOKEN).await;
+        let id = goal["id"].as_str().expect("id").to_string();
+
+        let (status, body) = request(
+            &app,
+            Method::POST,
+            &format!("/v1/goals/{id}/edit"),
+            Some(json!({ "title": "Mai's school shoes", "story": "Term starts on the 5th." })),
+            &[("x-owner-token", TEST_TOKEN)],
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK, "edit: {body}");
+        assert_eq!(body["goal"]["title"], "Mai's school shoes");
+        assert_eq!(body["goal"]["story"], "Term starts on the 5th.");
+        // Untouched fields keep their value.
+        assert_eq!(body["goal"]["target_luna"], "4000000000");
+
+        let (status, _) = request(
+            &app,
+            Method::POST,
+            &format!("/v1/goals/{id}/edit"),
+            Some(json!({ "title": "Someone else's jar" })),
+            &[("x-owner-token", "0".repeat(64).as_str())],
+        )
+        .await;
+        assert_eq!(status, StatusCode::FORBIDDEN);
+
+        let (_, detail) = request(&app, Method::GET, &format!("/v1/goals/{id}"), None, &[]).await;
+        assert_eq!(detail["goal"]["title"], "Mai's school shoes");
+    }
+
+    #[tokio::test]
+    async fn an_edit_still_rejects_a_nonsense_title() {
+        let (state, _stub) = test_state("edit_validation").await;
+        let app = crate::routes::app(state);
+        let goal = create_goal(&app, TEST_OWNER, TEST_TOKEN).await;
+        let id = goal["id"].as_str().expect("id").to_string();
+
+        let (status, body) = request(
+            &app,
+            Method::POST,
+            &format!("/v1/goals/{id}/edit"),
+            Some(json!({ "title": "ab" })),
+            &[("x-owner-token", TEST_TOKEN)],
+        )
+        .await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+        assert_eq!(body["error"]["code"], "validation_error");
     }
 
     #[tokio::test]

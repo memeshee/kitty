@@ -163,6 +163,17 @@ export const api = {
     }),
   closeGoal: (id: string, token: string) =>
     call<{ goal: Goal }>(`/goals/${id}/close`, { method: "POST", headers: { "x-owner-token": token } }),
+  /** Fix what you typed. The token buys editing, thanking and closing — never money. */
+  editGoal: (
+    id: string,
+    token: string,
+    patch: { title?: string; story?: string; target_luna?: string; deadline?: string },
+  ) =>
+    call<{ goal: Goal }>(`/goals/${id}/edit`, {
+      method: "POST",
+      headers: { "x-owner-token": token },
+      body: JSON.stringify(patch),
+    }),
 }
 
 /** The owner token lives only in this browser. Losing it loses thank-you rights,

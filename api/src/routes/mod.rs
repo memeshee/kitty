@@ -42,6 +42,7 @@ pub fn app(state: AppState) -> Router {
                 .route("/ledger", get(ledger::ledger))
                 .route("/goals/{id}/thanks", post(thanks::create_thanks))
                 .route("/goals/{id}/close", post(goals::close_goal))
+                .route("/goals/{id}/edit", post(goals::edit_goal))
                 .route(
                     "/admin/goals/{id}/visibility",
                     post(goals::set_goal_visibility),

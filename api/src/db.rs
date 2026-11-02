@@ -127,6 +127,27 @@ pub async fn goals_by_owner(
     }
 }
 
+/// Writes the editable fields of a jar. The route merges the patch over the current
+/// row first, so this is a full overwrite of the four fields an owner may change.
+pub async fn replace_goal_fields(
+    pool: &SqlitePool,
+    id: &str,
+    title: &str,
+    story: &str,
+    target_luna: &str,
+    deadline: &str,
+) -> Result<(), sqlx::Error> {
+    sqlx::query("UPDATE goals SET title = ?, story = ?, target_luna = ?, deadline = ? WHERE id = ?")
+        .bind(title)
+        .bind(story)
+        .bind(target_luna)
+        .bind(deadline)
+        .bind(id)
+        .execute(pool)
+        .await
+        .map(|_| ())
+}
+
 /// Takes a jar in or out of the public list. The jar, its receipts and its hashes
 /// stay exactly where they are: hiding is a listing decision, never a data one.
 pub async fn set_goal_hidden(pool: &SqlitePool, id: &str, hidden: bool) -> Result<(), sqlx::Error> {

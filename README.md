@@ -9,6 +9,7 @@ money, never holds a key, and never asks anyone for a deposit.
 
 - **Live app:** https://kitty-one-orpin.vercel.app
 - **API:** https://kitty-api-memeshee.fly.dev/v1/health
+- **Receipts and the public usage ledger:** https://kitty-one-orpin.vercel.app/proof
 - **Category:** Save, Nimiq Mini Apps Competition Cycle III (deadline 2026-11-11 23:59 UTC)
 - **Licence:** MIT
 
@@ -28,11 +29,13 @@ A goal jar is a page with a name, a target, a date, and a public ledger.
 
 1. **Name it.** "Mai's school fees, 40,000 NIM by 20 December."
 2. **Share it.** One link, straight to WhatsApp.
-3. **Watch it fill.** Anyone with Nimiq Pay chips in any amount. Each contribution is a
-   native NIM payment to the goal owner's own wallet, carrying `kitty:<goalId>` as its
-   on-chain memo.
+3. **Watch it fill.** Anyone with a Nimiq wallet chips in any amount — one tap inside Nimiq Pay,
+   or straight from **any browser** through the Nimiq Hub, so someone on an iPhone with no app
+   installed can still pay from the link. Each contribution is a native NIM payment to the goal
+   owner's own wallet, carrying `kitty:<goalId>` as its on-chain memo.
 4. **Check it.** Every receipt shows the amount, who gave it, the time, and a hash that opens
-   in a Nimiq explorer. The goal page also prints the owner's live wallet balance next to the
+   in a Nimiq explorer — and every receipt has its own page (`/r/<hash>`) that can be forwarded
+   into the same chat. The goal page also prints the owner's live wallet balance next to the
    receipts total, so anyone can see whether the ledger describes the wallet it claims to.
 
 ## Why now
@@ -75,12 +78,19 @@ Diagram: [`docs/architecture.html`](docs/architecture.html). Reasoning behind ev
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). API contract: [`docs/API.md`](docs/API.md).
 
 ```
-Kitty web (Next.js, Vercel)  ->  Nimiq Pay wallet  ->  Nimiq mainnet  ->  owner's wallet
-             |                                            ^
-             +-- hands the API a tx hash --> Kitty API (Rust, Fly) -- reads by hash
-                                                    |
-                                              receipts index (SQLite)
+Kitty web (Next.js, Vercel)
+   |-- inside Nimiq Pay --> Nimiq Pay wallet --\
+   |-- any other browser -> Nimiq Hub wallet ---+--> Nimiq mainnet --> owner's own wallet
+   |                                            |            ^
+   +-- hands the API a tx hash -----------------+            |
+                     Kitty API (Rust, Fly) ---- reads by hash and by address -+
+                          |                                                   |
+                     receipts index (SQLite) <---- sweep repairs missing rows -+
 ```
+
+Two payment rails exist because the people receiving a link are not all on the same phone. Both
+put the same `kitty:<id>` memo on the transaction, so the verifier is identical: the rails differ
+in who shows the approval sheet, not in what gets proven.
 
 | Component | Where | Holds |
 |---|---|---|
@@ -97,13 +107,15 @@ move a coin, because the platform gives us no way to sign one.
 
 ```bash
 cd api
-cargo test                      # 53 tests, 3 of which hit mainnet for real
+cargo test                      # 59 tests, 3 of which hit mainnet for real
 cargo run                       # http://localhost:8080/v1/health
 ```
 
 Environment (all optional, with working defaults): `PORT`, `DATABASE_URL` (default
 `./kitty.db`), `NIMIQ_RPC_URL` (default `https://rpc.nimiqwatch.com`), `ALLOWED_ORIGINS`
-(default `*`), `WEB_BASE_URL`, `NIMIQ_NETWORK` (default `mainnet`).
+(default `*`), `WEB_BASE_URL`, `NIMIQ_NETWORK` (default `mainnet`), and `ADMIN_TOKEN` (unset by
+default; when set it enables `POST /v1/admin/goals/{id}/visibility`, which is how a deploy-check
+jar leaves the public list without touching its ledger).
 
 ### Web
 
@@ -140,9 +152,9 @@ competition only accepts mainnet entries, and a savings jar with play money teac
 
 1. Open a goal page in a browser: it renders, and it tells you what the jar is and what it is
    not. No install required to read it.
-2. Open the same link in Nimiq Pay and chip in 1 NIM. You will see the goal tag inside the
-   wallet's own approval sheet.
-3. Watch the receipt appear, then open its hash in the explorer.
+2. Chip in 1 NIM **right there in the browser**: the Nimiq Hub opens, you approve, and the
+   contribution settles on mainnet with the jar's tag in its memo. No Nimiq Pay required.
+3. Watch the receipt appear, open its page at `/r/<hash>`, then follow its hash to the explorer.
 4. Compare the receipts total against the owner's live balance on the trust line.
 5. Run the audit: `python3 tools/audit_chain.py --api https://kitty-api-memeshee.fly.dev --recent 5`
 
@@ -155,9 +167,10 @@ competition only accepts mainnet entries, and a savings jar with play money teac
 | Kitty cannot move or hold funds | **Real by construction.** The platform exposes no signing capability to a Mini App, and the API stores no key material |
 | The receipts index agrees with the wallet | **Real.** The trust line compares a live chain balance with the indexed total: 80,086 NIM read from mainnet on the first test jar |
 | Any receipt can be independently checked | **Real.** Every row re-derives from `getTransactionByHash`; `tools/audit_chain.py` does it in bulk |
-| The verifier rejects wrong recipients, wrong memos, failed executions and duplicates | **Real and tested.** 53 tests including live-mainnet rejections, and the deployed API rejects a real mainnet transaction with `wrong_memo` |
+| The verifier rejects wrong recipients, wrong memos, failed executions and duplicates | **Real and tested.** 59 tests including live-mainnet rejections, and the deployed API rejects a real mainnet transaction with `wrong_memo` |
+| A payment whose client never reported back still becomes a receipt | **Real.** The jar page sweeps the owner's recent transactions for its memo and records anything missing through the same verifier; tested against a stub and bounded to one chain read per jar per 20s |
 | A full contribution through a real Nimiq Pay wallet | **Pending the first mainnet chip-in.** The success path is proven against a stubbed RPC in tests; the last mile needs a phone with NIM on it, and this README will carry the hash the moment it happens |
-| Usage numbers | **Not claimed yet.** When there are real contributors, `/stats` publishes them and they are reproducible from the chain |
+| Usage numbers | **Published, not claimed.** `GET /v1/ledger` and the proof page print the distinct wallets behind every receipt. Zero until real people pay, and the page says zero rather than rounding it up to a story |
 
 Nothing in Kitty is mocked, simulated or pre-seeded. There is no demo data in the database.
 

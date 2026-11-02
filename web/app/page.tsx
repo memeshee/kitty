@@ -43,9 +43,9 @@ export default async function Home() {
       {goals.length > 0 ? (
         <section className="mt-10">
           <div className="flex items-baseline justify-between">
-            <p className="eyebrow">Live jars</p>
+            <p className="eyebrow">Jars open now</p>
             <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-faint">
-              {stats ? `${stats.goals} open` : ""}
+              {stats ? `${stats.contributions} receipts so far` : ""}
             </p>
           </div>
           <ul className="mt-3 grid gap-2.5">

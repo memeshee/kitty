@@ -258,6 +258,99 @@ impl CreateGoalRequest {
     }
 }
 
+/// A patch from the owner. Every field is optional; an absent field keeps its value.
+#[derive(Debug, Deserialize, Default)]
+pub struct UpdateGoalRequest {
+    #[serde(default)]
+    pub title: Option<String>,
+    #[serde(default)]
+    pub story: Option<String>,
+    #[serde(default)]
+    pub target_luna: Option<String>,
+    #[serde(default)]
+    pub deadline: Option<String>,
+}
+
+/// The values a patch resolved to, ready to be written over the current row.
+#[derive(Debug)]
+pub struct GoalEdit {
+    pub title: Option<String>,
+    pub story: Option<String>,
+    pub target_luna: Option<String>,
+    pub deadline: Option<String>,
+}
+
+impl UpdateGoalRequest {
+    /// `today` is injected for the same reason as in [`CreateGoalRequest`].
+    pub fn validate(self, today: NaiveDate) -> Result<GoalEdit, ApiError> {
+        let title = match self.title {
+            Some(raw) => {
+                let title = raw.trim().to_string();
+                let len = title.chars().count();
+                if !(TITLE_MIN..=TITLE_MAX).contains(&len) {
+                    return Err(ApiError::validation(format!(
+                        "title must be {TITLE_MIN}..{TITLE_MAX} characters"
+                    )));
+                }
+                Some(title)
+            }
+            None => None,
+        };
+
+        let story = match self.story {
+            Some(raw) => {
+                let story = raw.trim().to_string();
+                if story.chars().count() > STORY_MAX {
+                    return Err(ApiError::validation(format!(
+                        "story must be at most {STORY_MAX} characters"
+                    )));
+                }
+                Some(story)
+            }
+            None => None,
+        };
+
+        let target_luna = match self.target_luna {
+            Some(raw) => {
+                let target = parse_luna(raw.trim()).ok_or_else(|| {
+                    ApiError::validation("target_luna must be a string of integer Luna")
+                })?;
+                if target < MIN_TARGET_LUNA {
+                    return Err(ApiError::validation(format!(
+                        "target_luna must be at least {MIN_TARGET_LUNA}"
+                    )));
+                }
+                if target > MAX_TARGET_LUNA {
+                    return Err(ApiError::validation("target_luna is out of range"));
+                }
+                Some(target.to_string())
+            }
+            None => None,
+        };
+
+        let deadline = match self.deadline {
+            Some(raw) => {
+                let deadline = NaiveDate::parse_from_str(raw.trim(), "%Y-%m-%d")
+                    .map_err(|_| ApiError::validation("deadline must be YYYY-MM-DD"))?;
+                if deadline < today || deadline > today + Duration::days(365) {
+                    return Err(ApiError::validation(
+                        "deadline must be between today and 365 days from today",
+                    ));
+                }
+                Some(deadline.format("%Y-%m-%d").to_string())
+            }
+            None => None,
+        };
+
+        Ok(GoalEdit {
+            title,
+            story,
+            target_luna,
+            deadline,
+        })
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub struct CreateContributionRequest {
     pub tx_hash: String,
