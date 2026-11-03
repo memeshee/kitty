@@ -22,7 +22,7 @@ Deadline: **2026-11-12T00:00:00Z** (Thu 12 Nov 07:00 +07). Submit **10 Nov**.
 | team_name | (blank, solo) |
 | team_members | (blank) |
 | x_account | @0xMemeshe |
-| builder_story (4000 chars) | *written last, with the real first goal and real numbers* |
+| builder_story (4000 chars) | **Final text below, 2,259 chars.** Carries the real first payment (5 NIM, block 65,891,682) |
 | skool_post_url | 2 points. Post draft below before filling the form. |
 | social_post_url | 3 points. Post draft below before filling the form. |
 | heard_about | Nimiq Mini Apps Competition site |
@@ -32,13 +32,21 @@ Deadline: **2026-11-12T00:00:00Z** (Thu 12 Nov 07:00 +07). Submit **10 Nov**.
 
 ## Tagline
 
-> A jar your people fill. Name what you are saving for, share one link, and let family chip in. Every coin is a real NIM payment with a public receipt.
+> A jar your people fill. Name the goal, share one link, family chips in — every coin a real NIM payment with a receipt.
+
+118 characters.
 
 ## Description (under 280 characters)
 
-> Kitty is a goal jar inside Nimiq Pay. Name what you are saving for, share one link, and the people who care chip in from their own phones. Every contribution is a real NIM payment to the owner's own wallet, tagged on-chain, with a receipt anyone can check. Kitty holds no money and no keys.
+> Kitty is a goal jar inside Nimiq Pay. Name what you save for, share one link, and the people who care chip in from their phones. Every contribution is a real NIM payment to the owner's own wallet, tagged on-chain, with a receipt anyone can check.
 
-*Count before pasting. The form caps at 280 characters, not words.*
+246 characters, measured. The form caps at 280 characters, not words.
+
+**Category is `Save` and pricing is `Free`.** Cycle III's category vocabulary is exactly
+`Pay / Save / Earn / On/Off-Ramp / Off-theme`, and pricing is `Free / Freemium / Paid` — both
+mirrored from the competition's own validator (`scripts/lib/schema.mjs` in
+`nimiq/miniappscompetition-submissions`), not guessed from the general category list on the rules
+page.
 
 ## Skool post (2 points)
 
@@ -72,13 +80,41 @@ Account: @0xMemeshe. One post is enough for the checklist; a short thread is bet
 >
 > [link]
 
-## Screenshots to take
+## Uploaded assets
 
-1. A goal page with a partly filled jar and a real receipt ledger.
-2. The chip-in sheet with an amount selected.
-3. The native Nimiq Pay approval sheet showing the memo.
-4. The explorer open on one of the contributions, next to the jar.
-5. The public numbers page.
+In `submission/`, all captured from the live deployment at 760x1647:
+
+1. `screen-goal.png` — the jar at 5 of 50 NIM with one verified receipt. **First upload: this is the
+   social preview.**
+2. `screen-chipin.png` — the chip-in sheet, 5 NIM selected, name and note filled.
+3. `screen-receipt.png` — `/r/8afa45e0...901ab9`, the receipt as its own forwardable page.
+4. `screen-proof.png` — the public proof page: jars, receipts, people, NIM moved.
+5. `screen-home.png` — the jar list.
+
+`icon-512.png` (full-bleed square, no rounded corners — the platform masks it), `thumbnail-240.png`
+(inverted cream variant), and `contact-sheet.png` for a single-glance preview. Total 2.5 MB, well
+inside the 2 MB/file and 14 MB/total caps.
+
+The native Nimiq Pay approval sheet showing `kitty:aakgnbsc` is in the demo video at 00:16 instead of
+a still: a screenshot of it cannot prove the memo was in the wallet's own dialog.
+
+## Builder story (final, 2,260 characters)
+
+Paste this into the builder-story field as plain text.
+
+Someone in every family keeps the list. Who has paid, who still owes, and whether the money is really there. That person chases cousins, fronts the gap, and hopes the count is right.
+
+I did not want to build another payment app. The paying was never the hard part. The hard part is the keeping track, and the trust: a group chat cannot tell you who chipped in, and a platform that holds the pot asks you to trust it with everyone's money.
+
+Then I read the Nimiq Pay Mini Apps Framework inventory properly, and the constraint turned out to be the product. The platform gives a Mini App a 64-byte public memo on every payment, a balance read without approval, and a native approval sheet. It gives you no way to create a contract, no HTLC, no cashlink, and the wallet always picks the signing account. So there is no way to build a shared pot that holds money. The only honest shape left is: the money goes straight to the person it is for, and the app does the bookkeeping in public.
+
+That is Kitty. You name the goal, set a target and a date, and share one link. Anyone chips in any amount from their own phone, in Nimiq Pay or from any browser through the Nimiq Hub, and the payment carries kitty:<jar id> as its on-chain memo. Kitty then re-reads that transaction from mainnet before it writes a single row: does the hash exist, did the value reach the jar owner, does the memo carry this jar's tag, did the transaction execute, is the amount the chain's, and has this hash been counted before. Six checks, and a payment that fails any of them never becomes a receipt.
+
+The first real payment was 5 NIM at block 65,891,682 (8afa45e0...901ab9), and the best moment of the build was watching the jar move on its own: the page had printed nothing, then it re-read the chain and printed what it found. Every receipt has its own page you can forward back into the chat, and every one opens on a Nimiq explorer.
+
+What I would build next: recurring chips (the same aunt every month), a goal page that reads in the family's own language, and an owner-side nudge that is a real payment request rather than a message. What I will not build is a custodian.
+
+MIT, no token, no AI, no contract. The whole product is public bookkeeping over payments that already happened.
 
 ## Video (3 minutes, two phones)
 
