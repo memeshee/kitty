@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Kitty · where the money goes</title>
+<style>
+  :root{
+    --paper:#f4eee3; --paper-2:#fbf8f1; --ink:#1b1a17; --muted:#5f594d;
+    --soft:#8b8477; --rule:rgba(27,26,23,.22); --accent:#c9761c; --accent-2:#dd9a1e;
+    --deep:#14261f; --link:#3f6b57;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  html,body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans)}
+  .page{max-width:1200px;margin:0 auto;padding:44px 0 56px}
+  .eyebrow,h1,.lede,.note{padding-left:24px;padding-right:24px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin:0 0 10px}
+  h1{font-size:30px;line-height:1.15;letter-spacing:-.02em;font-weight:600;margin:0 0 8px}
+  .lede{font-size:14px;line-height:1.55;color:var(--muted);margin:0 0 26px;max-width:760px}
+  .scroll{overflow-x:auto}
+  svg{display:block;min-width:1200px}
+  .note{font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--soft);margin-top:16px}
+</style></head><body>
+<div class="page">
+  <p class="eyebrow">Kitty · trust boundary</p>
+  <h1>The money never enters the box</h1>
+  <p class="lede">A contribution is a NIM payment from the giver's wallet to the owner's wallet, signed in
+    Nimiq Pay. Kitty only reads that payment back from the chain and prints what it finds, which is why a
+    receipt cannot be invented and Kitty cannot spend a coin.</p>
+
+  <div class="scroll">
+  <svg viewBox="0 0 1200 620" width="1200" height="620" role="img"
+       aria-labelledby="trust-title trust-desc" xmlns="http://www.w3.org/2000/svg">
+    <title id="trust-title">Kitty trust boundary: money moves between wallets, Kitty only reads the chain</title>
+    <desc id="trust-desc">A giver's wallet sends NIM with the jar tag to the owner's own wallet through the Nimiq
+      chain. Inside a separate box, the Kitty web app posts the transaction hash to Kitty's verifier, which reads
+      that transaction from the chain and prints the row on the public proof page.</desc>
+
+    <defs>
+      <marker id="trust-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7"
+              orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#5f594d"/></marker>
+      <marker id="trust-arrow-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7"
+              orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#c9761c"/></marker>
+      <marker id="trust-arrow-link" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7"
+              orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#3f6b57"/></marker>
+    </defs>
+
+    <!-- trust boundary: Kitty's side of the line -->
+    <rect x="20" y="336" width="1160" height="196" rx="10" fill="#fbf8f1"
+          stroke="#8b8477" stroke-width="1.5" stroke-dasharray="7,5"/>
+    <text x="44" y="366" font-family="ui-monospace,Menlo,monospace" font-size="11" letter-spacing="1.7"
+          fill="#c9761c">KITTY · NO KEYS, NO CUSTODY</text>
+
+    <!-- arrows first, so strokes sit behind the boxes -->
+    <path d="M296 170 H466" stroke="#c9761c" stroke-width="2" fill="none" marker-end="url(#trust-arrow-accent)"/>
+    <path d="M732 170 H902" stroke="#c9761c" stroke-width="2" fill="none" marker-end="url(#trust-arrow-accent)"/>
+    <path d="M296 450 H466" stroke="#5f594d" stroke-width="1.5" fill="none" marker-end="url(#trust-arrow)"/>
+    <path d="M732 450 H902" stroke="#5f594d" stroke-width="1.5" fill="none" marker-end="url(#trust-arrow)"/>
+    <path d="M600 228 V396" stroke="#3f6b57" stroke-width="1.5" fill="none" stroke-dasharray="5,4"
+          marker-end="url(#trust-arrow-link)"/>
+
+    <!-- arrow labels, each on its own opaque mask -->
+    <rect x="330" y="140" width="104" height="20" rx="3" fill="#f4eee3"/>
+    <text x="382" y="154" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="10.5"
+          letter-spacing="1.2" fill="#c9761c">SENDS 5 NIM</text>
+    <rect x="764" y="140" width="108" height="20" rx="3" fill="#f4eee3"/>
+    <text x="818" y="154" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="10.5"
+          letter-spacing="1.2" fill="#c9761c">LANDS THERE</text>
+    <rect x="330" y="420" width="104" height="20" rx="3" fill="#fbf8f1"/>
+    <text x="382" y="434" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="10.5"
+          letter-spacing="1.2" fill="#5f594d">POSTS HASH</text>
+    <rect x="762" y="420" width="112" height="20" rx="3" fill="#fbf8f1"/>
+    <text x="818" y="434" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="10.5"
+          letter-spacing="1.2" fill="#5f594d">PRINTS ROW</text>
+    <rect x="612" y="296" width="92" height="20" rx="3" fill="#f4eee3"/>
+    <text x="658" y="310" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-size="10.5"
+          letter-spacing="1.2" fill="#3f6b57">READS TX</text>
+
+    <!-- node: giver -->
+    <rect x="40" y="122" width="256" height="96" rx="6" fill="#fbf8f1" stroke="#1b1a17" stroke-width="1.5"/>
+    <text x="62" y="156" font-size="15" font-weight="600" fill="#1b1a17">Giver's phone</text>
+    <text x="62" y="178" font-family="ui-monospace,Menlo,monospace" font-size="10.5" letter-spacing="1.1"
+          fill="#5f594d">NIMIQ PAY · SIGNS</text>
+    <text x="62" y="198" font-family="ui-monospace,Menlo,monospace" font-size="10.5" fill="#8b8477">tag kitty:aakgnbsc</text>
+
+    <!-- node: chain -->
+    <rect x="476" y="122" width="256" height="96" rx="6" fill="#14261f" stroke="#14261f" stroke-width="1.5"/>
+    <text x="498" y="156" font-size="15" font-weight="600" fill="#f4f0e6">Nimiq mainnet</text>
+    <text x="498" y="178" font-family="ui-monospace,Menlo,monospace" font-size="10.5" letter-spacing="1.1"
+          fill="#c9c2b2">BLOCK 65,891,682</text>
+    <text x="498" y="198" font-family="ui-monospace,Menlo,monospace" font-size="10.5" fill="#8b8477">value read from the node</text>
+
+    <!-- node: owner wallet (focal) -->
+    <rect x="912" y="122" width="256" height="96" rx="6" fill="#fbf8f1" stroke="#c9761c" stroke-width="2"/>
+    <text x="934" y="156" font-size="15" font-weight="600" fill="#1b1a17">Owner's own wallet</text>
+    <text x="934" y="178" font-family="ui-monospace,Menlo,monospace" font-size="10.5" letter-spacing="1.1"
+          fill="#c9761c">THE MONEY IS HERE</text>
+    <text x="934" y="198" font-family="ui-monospace,Menlo,monospace" font-size="10.5" fill="#8b8477">not in Kitty</text>
+
+    <!-- node: web app -->
+    <rect x="40" y="402" width="256" height="96" rx="6" fill="#fbf8f1" stroke="#1b1a17" stroke-width="1.5"/>
+    <text x="62" y="436" font-size="15" font-weight="600" fill="#1b1a17">Kitty web app</text>
+    <text x="62" y="458" font-family="ui-monospace,Menlo,monospace" font-size="10.5" letter-spacing="1.1"
+          fill="#5f594d">THE JAR PAGE</text>
+    <text x="62" y="478" font-family="ui-monospace,Menlo,monospace" font-size="10.5" fill="#8b8477">no wallet, no key</text>
+
+    <!-- node: verifier -->
+    <rect x="476" y="402" width="256" height="96" rx="6" fill="#fbf8f1" stroke="#1b1a17" stroke-width="1.5"/>
+    <text x="498" y="436" font-size="15" font-weight="600" fill="#1b1a17">Kitty verifier</text>
+    <text x="498" y="458" font-family="ui-monospace,Menlo,monospace" font-size="10.5" letter-spacing="1.1"
+          fill="#5f594d">SIX CHECKS</text>
+    <text x="498" y="478" font-family="ui-monospace,Menlo,monospace" font-size="10.5" fill="#8b8477">refuses a wrong row</text>
+
+    <!-- node: proof page -->
+    <rect x="912" y="402" width="256" height="96" rx="6" fill="#fbf8f1" stroke="#1b1a17" stroke-width="1.5"/>
+    <text x="934" y="436" font-size="15" font-weight="600" fill="#1b1a17">Public proof page</text>
+    <text x="934" y="458" font-family="ui-monospace,Menlo,monospace" font-size="10.5" letter-spacing="1.1"
+          fill="#5f594d">EVERY RECEIPT</text>
+    <text x="934" y="478" font-family="ui-monospace,Menlo,monospace" font-size="10.5" fill="#8b8477">opens on Nimiq</text>
+
+    <!-- legend strip -->
+    <g font-family="ui-monospace,Menlo,monospace" font-size="10.5" letter-spacing="1.1" fill="#5f594d">
+      <line x1="40" y1="576" x2="76" y2="576" stroke="#c9761c" stroke-width="2" marker-end="url(#trust-arrow-accent)"/>
+      <text x="86" y="580">MONEY MOVES</text>
+      <line x1="222" y1="576" x2="258" y2="576" stroke="#5f594d" stroke-width="1.5" marker-end="url(#trust-arrow)"/>
+      <text x="268" y="580">KITTY WRITES</text>
+      <line x1="404" y1="576" x2="440" y2="576" stroke="#3f6b57" stroke-width="1.5" stroke-dasharray="5,4"
+            marker-end="url(#trust-arrow-link)"/>
+      <text x="450" y="580">READS THE CHAIN</text>
+    </g>
+  </svg>
+  </div>
+  <p class="note">5 NIM · tx 8afa45e0…901ab9 · block 65,891,682 · tag kitty:aakgnbsc</p>
+</div>
+</body></html>

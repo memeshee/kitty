@@ -13,6 +13,18 @@ money, never holds a key, and never asks anyone for a deposit.
 - **Category:** Save, Nimiq Mini Apps Competition Cycle III (deadline 2026-11-11 23:59 UTC)
 - **Licence:** MIT
 
+<p>
+  <img src="submission/screen-goal.png" width="19%" alt="A goal jar with one verified receipt" />
+  <img src="submission/screen-chipin.png" width="19%" alt="Chipping in 5 NIM with a name and a note" />
+  <img src="submission/screen-receipt.png" width="19%" alt="A receipt page with its on-chain hash" />
+  <img src="submission/screen-proof.png" width="19%" alt="The public proof page" />
+  <img src="submission/screen-home.png" width="19%" alt="The jar list" />
+</p>
+
+**Demo video (2:07):** _the walkthrough — create a jar, chip in from a phone, watch the receipt land_
+· **Submission pack:** [`submission/`](submission) (icon, thumbnail, screenshots) and
+[`docs/submission.md`](docs/submission.md) (every form field, drafted).
+
 ---
 
 ## The problem
@@ -74,8 +86,15 @@ attribution, verified by re-reading the chain rather than by trusting the client
 
 ## Architecture
 
-Diagram: [`docs/architecture.html`](docs/architecture.html). Reasoning behind every decision:
-[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). API contract: [`docs/API.md`](docs/API.md).
+**The money never enters the box.** A contribution is a NIM payment from the giver's wallet to the
+owner's wallet, signed in Nimiq Pay. Kitty reads that payment back from the chain and prints what it
+finds, which is why a receipt cannot be invented and Kitty cannot spend a coin.
+
+![Kitty trust boundary: money moves between wallets, Kitty only reads the chain](docs/architecture-trust.png)
+
+Source: [`docs/architecture-trust.html`](docs/architecture-trust.html) (self-contained SVG).
+Full component diagram: [`docs/architecture.html`](docs/architecture.html). Reasoning behind every
+decision: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). API contract: [`docs/API.md`](docs/API.md).
 
 ```
 Kitty web (Next.js, Vercel)
@@ -165,11 +184,11 @@ competition only accepts mainnet entries, and a savings jar with play money teac
 | Contributions are real NIM payments on Nimiq mainnet | **Real.** Verified by re-reading each transaction from the chain |
 | A payment's goal attribution survives on-chain | **Real.** Proven on a mainnet transaction before any code was written: [`facts/chain-proof.md`](facts/chain-proof.md) |
 | Kitty cannot move or hold funds | **Real by construction.** The platform exposes no signing capability to a Mini App, and the API stores no key material |
-| The receipts index agrees with the wallet | **Real.** The trust line compares a live chain balance with the indexed total: 80,086 NIM read from mainnet on the first test jar |
+| The receipts index agrees with the wallet | **Real, and it can disagree out loud.** The trust line prints the owner's live chain balance beside the indexed receipts total, and says which one is behind. On the demo jar the balance is now 0 NIM against 5 NIM of receipts: the owner spent it, and the page says so instead of hiding it |
 | Any receipt can be independently checked | **Real.** Every row re-derives from `getTransactionByHash`; `tools/audit_chain.py` does it in bulk |
 | The verifier rejects wrong recipients, wrong memos, failed executions and duplicates | **Real and tested.** 59 tests including live-mainnet rejections, and the deployed API rejects a real mainnet transaction with `wrong_memo` |
 | A payment whose client never reported back still becomes a receipt | **Real.** The jar page sweeps the owner's recent transactions for its memo and records anything missing through the same verifier; tested against a stub and bounded to one chain read per jar per 20s |
-| A full contribution through a real Nimiq Pay wallet | **Pending the first mainnet chip-in.** The success path is proven against a stubbed RPC in tests; the last mile needs a phone with NIM on it, and this README will carry the hash the moment it happens |
+| A full contribution through a real Nimiq Pay wallet | **Real.** 5 NIM from `NQ67V6P…YBRA` into "Mai's new school shoes", approved in Nimiq Pay, verified at block 65,891,682: [`8afa45e0…901ab9`](https://nimiq.watch/#8afa45e02b8f59604e498decc8415053da3d87f80373f710381e9b7bc1901ab9), `recipientData` decodes to `kitty:aakgnbsc`. The goal page shows it, and `/r/8afa45e0…901ab9` is its own forwardable receipt |
 | Usage numbers | **Published, not claimed.** `GET /v1/ledger` and the proof page print the distinct wallets behind every receipt. Zero until real people pay, and the page says zero rather than rounding it up to a story |
 
 Nothing in Kitty is mocked, simulated or pre-seeded. There is no demo data in the database.
