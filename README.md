@@ -21,7 +21,7 @@ money, never holds a key, and never asks anyone for a deposit.
   <img src="submission/screen-home.png" width="19%" alt="The jar list" />
 </p>
 
-**Demo video (2:07):** _the walkthrough — create a jar, chip in from a phone, watch the receipt land_
+**Demo video (2:07):** [https://youtu.be/IgbqfNUR9sw](https://youtu.be/IgbqfNUR9sw) — create a jar, chip in from a phone, watch the receipt land
 · **Submission pack:** [`submission/`](submission) (icon, thumbnail, screenshots) and
 [`docs/submission.md`](docs/submission.md) (every form field, drafted).
 

@@ -23,6 +23,7 @@ Deadline: **2026-11-12T00:00:00Z** (Thu 12 Nov 07:00 +07). Submit **10 Nov**.
 | team_members | (blank) |
 | x_account | @0xMemeshe |
 | builder_story (4000 chars) | **Final text below, 2,259 chars.** Carries the real first payment (5 NIM, block 65,891,682) |
+| video_url | https://youtu.be/IgbqfNUR9sw |
 | skool_post_url | 2 points. Post draft below before filling the form. |
 | social_post_url | 3 points. Post draft below before filling the form. |
 | heard_about | Nimiq Mini Apps Competition site |
@@ -116,11 +117,18 @@ What I would build next: recurring chips (the same aunt every month), a goal pag
 
 MIT, no token, no AI, no contract. The whole product is public bookkeeping over payments that already happened.
 
-## Video (3 minutes, two phones)
+## Video — shipped, 2:07
 
-1. Two minutes: the goal page, the link, the receipts, why there is no custodian.
-2. Thirty seconds: the second phone chips in one NIM live, the jar moves, the hash appears.
-3. Thirty seconds: the same hash on the explorer, and the owner's balance on the trust line.
+**https://youtu.be/IgbqfNUR9sw** — public, plays logged out.
+
+Hook, then a live jar creation, then the real footage: the link, the chip-in, the wallet's own
+approval sheet carrying `kitty:aakgnbsc`, the receipt landing, its own forwardable page, and the
+public proof page. Every number on screen is read from mainnet, not from the app's copy.
+
+One screen in it is now stale and worth knowing about: the receipt screen was recorded on 2 November
+and reads `RECEIPTS 0 IN` above a `+5` row. That was the state at the time; the current build renders
+`5 NIM` and "the receipts above add up to 5 NIM" correctly. If the video is ever re-cut, that is the
+only frame that needs re-recording.
 
 ## Before submitting, re-check inside 24 hours
 
