@@ -18,6 +18,16 @@ use crate::config::{Config, ACCOUNT_CACHE_TTL};
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 
+/// A transport failure that comes back this fast is a dead socket, not a slow node.
+///
+/// Suspending the machine is what makes this matter: the VM keeps its pooled
+/// connections across the snapshot and believes they are still open, while the node
+/// on the other end has long since dropped them. The first chain read after a resume
+/// would then fail on a connection the process thinks is fine. Retrying once turns
+/// that into an ordinary request. The budget is deliberately tight so a genuinely
+/// slow RPC cannot be read as a stale socket and doubled.
+const STALE_CONNECTION_BUDGET: Duration = Duration::from_secs(2);
+
 #[derive(Debug, thiserror::Error)]
 pub enum ChainError {
     #[error("chain transport error: {0}")]
@@ -45,6 +55,13 @@ impl ChainError {
             }
             _ => false,
         }
+    }
+
+    /// Nothing was learned about the chain: the request never got an answer. Only
+    /// these are worth repeating verbatim, since a re-sent read costs nothing and
+    /// cannot double-count a payment.
+    fn is_transport(&self) -> bool {
+        matches!(self, ChainError::Transport(_))
     }
 }
 
@@ -104,8 +121,27 @@ impl ChainClient {
         &self.network
     }
 
-    /// Returns the `result` object of a JSON-RPC call.
+    /// Returns the `result` object of a JSON-RPC call, retrying a stale socket once.
+    ///
+    /// The retry exists because the service scales to zero by suspending, and a
+    /// resumed process reuses connection state the node has already forgotten.
     async fn call(&self, method: &str, params: Value) -> Result<Value, ChainError> {
+        let started = Instant::now();
+        match self.call_once(method, &params).await {
+            Err(err) if err.is_transport() && started.elapsed() < STALE_CONNECTION_BUDGET => {
+                debug!(
+                    method,
+                    error = %err,
+                    "transport failed fast; retrying as a stale connection"
+                );
+                self.call_once(method, &params).await
+            }
+            other => other,
+        }
+    }
+
+    /// One JSON-RPC round trip. No retries, no interpretation.
+    async fn call_once(&self, method: &str, params: &Value) -> Result<Value, ChainError> {
         let body = json!({
             "jsonrpc": "2.0",
             "id": 1,
@@ -393,5 +429,38 @@ mod tests {
 
         let transport = ChainError::Transport("connection refused".into());
         assert!(!transport.is_not_found());
+    }
+
+    #[test]
+    fn only_transport_failures_are_worth_retrying() {
+        assert!(ChainError::Transport("connection reset by peer".into()).is_transport());
+        assert!(!ChainError::Rpc {
+            code: -32603,
+            message: "Internal error".into(),
+            detail: Some("Transaction not found".into()),
+        }
+        .is_transport());
+        assert!(!ChainError::Decode("no result".into()).is_transport());
+    }
+
+    /// The resume path: a suspended machine wakes holding sockets the node has
+    /// forgotten. The first read must recover instead of surfacing the error.
+    #[tokio::test]
+    async fn a_dead_socket_costs_one_retry_and_nothing_else() {
+        use crate::test_support::spawn_stub;
+
+        let stub = crate::test_support::StubChain::default();
+        let url = spawn_stub(stub.clone()).await;
+        let cfg = Config {
+            rpc_url: url,
+            ..Config::default()
+        };
+        let chain = ChainClient::new(&cfg).expect("chain client");
+
+        stub.fail_next("getBlockNumber", 1);
+
+        let head = chain.block_number().await.expect("retried read");
+        assert_eq!(head, 65_762_000);
+        assert_eq!(stub.calls("getBlockNumber"), 2);
     }
 }

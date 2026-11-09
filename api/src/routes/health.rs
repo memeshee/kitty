@@ -15,6 +15,22 @@ use crate::state::AppState;
 
 const CHAIN_PROBE_TIMEOUT: Duration = Duration::from_secs(3);
 
+/// `GET /ready`: the probe a wake-up needs, and the reason it is not `/health`.
+///
+/// The process binds its port only after the pool is open and the migrations have
+/// run (see `main`), so "listening" already means "ready". This answer therefore
+/// costs microseconds and touches nothing — which is what a frontend wants when it
+/// fires a speculative request to pull a scaled-to-zero machine out of its snapshot.
+/// `/health` stays the honest, chain-reading check for humans and monitors.
+#[derive(Debug, Serialize)]
+pub struct ReadyResponse {
+    pub ok: bool,
+}
+
+pub async fn ready() -> Json<ReadyResponse> {
+    Json(ReadyResponse { ok: true })
+}
+
 #[derive(Debug, Serialize)]
 pub struct HealthResponse {
     pub ok: bool,

@@ -22,11 +22,20 @@ primary_region = "sin"
 [http_service]
   internal_port = 8080
   force_https = true
-  # Kept warm on purpose: a judge who waits four seconds for a cold start is a
-  # judge who has already formed an opinion. This is the cheapest machine size.
-  auto_stop_machines = false
+  # Scale to zero. A jar nobody is looking at should not bill CPU, so the machine
+  # leaves when the traffic does: `suspend` instead of `stop`, because a resume
+  # restores the running process from a memory snapshot in a few hundred ms while
+  # a stop has to boot the kernel, the binary and the migrations again.
+  auto_stop_machines = "suspend"
   auto_start_machines = true
-  min_machines_running = 1
+  min_machines_running = 0
+
+  # Autostop is decided on request concurrency, so say when a single machine is
+  # considered busy rather than letting the default guess.
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 20
+    hard_limit = 40
 
 [[vm]]
   memory = "512mb"

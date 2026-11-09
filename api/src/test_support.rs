@@ -32,6 +32,8 @@ struct StubInner {
     account: Option<Value>,
     account_block: i64,
     calls: HashMap<String, usize>,
+    /// Method name -> how many of the next calls to refuse at the transport level.
+    failures: HashMap<String, usize>,
 }
 
 impl StubChain {
@@ -59,6 +61,13 @@ impl StubChain {
 
     pub fn calls(&self, method: &str) -> usize {
         *self.lock().calls.get(method).unwrap_or(&0)
+    }
+
+    /// Makes the next `times` calls of `method` fail the way a dead socket does:
+    /// an HTTP error with no JSON-RPC envelope, which the client reports as a
+    /// transport failure rather than as a statement about the chain.
+    pub fn fail_next(&self, method: &str, times: usize) {
+        self.lock().failures.insert(method.to_string(), times);
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, StubInner> {
@@ -102,6 +111,21 @@ async fn rpc_handler(State(stub): State<StubChain>, body: String) -> (StatusCode
     {
         let mut inner = stub.lock();
         *inner.calls.entry(method.clone()).or_insert(0) += 1;
+    }
+
+    // A refused connection, before any JSON-RPC meaning exists: this is what a
+    // resumed machine sees when it reuses a socket the node has already dropped.
+    {
+        let mut inner = stub.lock();
+        if let Some(remaining) = inner.failures.get_mut(&method) {
+            if *remaining > 0 {
+                *remaining -= 1;
+                return (
+                    StatusCode::BAD_GATEWAY,
+                    Json(json!({"error": "node closed the connection"})),
+                );
+            }
+        }
     }
 
     let inner = stub.lock();

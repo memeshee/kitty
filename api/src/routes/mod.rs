@@ -29,10 +29,14 @@ pub fn app(state: AppState) -> Router {
         // that join the base URL naively from 404ing.
         .route("/health", get(health::health))
         .route("/v1/health", get(health::health))
+        // `/ready` is the cheap one: no chain read, no database read, just proof
+        // that the machine is awake and serving. It is what a cold start needs.
+        .route("/ready", get(health::ready))
         .nest(
             "/v1",
             Router::new()
                 .route("/goals", get(goals::list_goals).post(goals::create_goal))
+                .route("/ready", get(health::ready))
                 .route("/goals/{id}", get(goals::get_goal))
                 .route(
                     "/goals/{id}/contributions",
@@ -104,6 +108,22 @@ mod tests {
         let (status, body) = request(&app, Method::GET, "/v1/health", None, &[]).await;
         assert_eq!(status, StatusCode::OK);
         assert_eq!(body["chain_head"], 65_762_000);
+    }
+
+    #[tokio::test]
+    async fn ready_answers_without_touching_the_chain_or_the_database() {
+        let (state, stub) = test_state("ready").await;
+        let app = app(state);
+
+        for path in ["/ready", "/v1/ready"] {
+            let (status, body) = request(&app, Method::GET, path, None, &[]).await;
+            assert_eq!(status, StatusCode::OK);
+            assert_eq!(body["ok"], true);
+        }
+
+        // The point of /ready is the cost: a wake-up must not wait on a public
+        // node, so this endpoint never issues a single RPC call.
+        assert_eq!(stub.calls("getBlockNumber"), 0);
     }
 
     #[tokio::test]
