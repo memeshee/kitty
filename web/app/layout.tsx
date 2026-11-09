@@ -3,6 +3,7 @@ import { GeistSans } from "geist/font/sans"
 import { JetBrains_Mono } from "next/font/google"
 import { ToastProvider } from "@/components/Toaster"
 import { SiteHeader } from "@/components/SiteHeader"
+import { Wake } from "@/components/Wake"
 import "./globals.css"
 
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono-jb", display: "swap" })
@@ -31,6 +32,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${GeistSans.variable} ${mono.variable}`}>
       <body className="min-h-[100dvh] antialiased">
         <ToastProvider>
+          {/* The indexer sleeps when nobody is looking; this wakes it on hydrate. */}
+          <Wake />
           <div className="relative z-[1] mx-auto w-full max-w-[560px] px-5 pb-40">
             <SiteHeader />
             {children}

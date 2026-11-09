@@ -1,0 +1,10 @@
+# The Vercel project's Root Directory is `web`, so nothing else needs to travel.
+# Without this the CLI uploads the Rust build tree (`api/target`, ~800MB) and the
+# deploy dies mid-upload.
+/api
+/docs
+/facts
+/submission
+/tools
+**/.next
+**/node_modules

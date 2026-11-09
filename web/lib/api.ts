@@ -93,19 +93,67 @@ export class ApiError extends Error {
   }
 }
 
-async function call<T>(path: string, init?: RequestInit): Promise<T> {
+/** Cold starts are a real state once the API scales to zero, not an error.
+ *  Fly holds a request while the machine resumes from its memory snapshot, so the
+ *  first read of a quiet half hour can take seconds. These budgets exist to absorb
+ *  that instead of rendering an empty page. */
+const READ_TIMEOUT_MS = 8_000
+const CALL_TIMEOUT_MS = 12_000
+const RETRY_DELAY_MS = 400
+
+/** What a wake-up looks like from the outside: the proxy answering before the
+ *  machine has an answer of its own. */
+const RETRYABLE_STATUS = new Set([502, 503, 504])
+
+type ReadOptions = { revalidate?: number; timeoutMs?: number }
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+function safeJson(text: string): Record<string, unknown> {
+  try {
+    return JSON.parse(text) as Record<string, unknown>
+  } catch {
+    // A 502 from the proxy is HTML, not our envelope. The status code still says
+    // what happened, so parsing must never mask it.
+    return {}
+  }
+}
+
+/** `status === 0` means no answer at all: a waking machine, or a phone with one
+ *  bar. A browser call retries it; a server render does not, because retrying
+ *  there would spend the page's entire timeout budget twice. */
+function isRetryable(e: unknown, offline: boolean): boolean {
+  if (!(e instanceof ApiError)) return false
+  return RETRYABLE_STATUS.has(e.status) || (offline && e.status === 0)
+}
+
+async function once<T>(path: string, init?: RequestInit, opts: ReadOptions = {}): Promise<T> {
+  const { revalidate, timeoutMs = CALL_TIMEOUT_MS } = opts
+  const serverRead = revalidate !== undefined
+  const url = `${BASE}/v1${path}`
+  const headers = { "content-type": "application/json", ...(init?.headers ?? {}) }
+
   let res: Response
   try {
-    res = await fetch(`${BASE}/v1${path}`, {
+    res = await fetch(url, {
       ...init,
-      headers: { "content-type": "application/json", ...(init?.headers ?? {}) },
-      cache: "no-store",
+      headers,
+      // A hung socket is the normal shape of a cold start, so every request gets a
+      // deadline instead of waiting for the platform to kill the page.
+      signal: AbortSignal.timeout(timeoutMs),
+      ...(serverRead ? { next: { revalidate } } : { cache: "no-store" as RequestCache }),
     })
   } catch {
-    throw new ApiError("network", "Can't reach Kitty right now. Check your connection and try again.", 0)
+    throw new ApiError(
+      "network",
+      serverRead
+        ? "Kitty's index is unreachable right now."
+        : "Can't reach Kitty right now. Check your connection and try again.",
+      0,
+    )
   }
-  const text = await res.text()
-  const body = text ? JSON.parse(text) : {}
+
+  const body = safeJson(await res.text()) as { error?: { code?: string; message?: string } }
   if (!res.ok) {
     const e = body?.error ?? {}
     throw new ApiError(e.code ?? "unknown", e.message ?? "Something went wrong.", res.status)
@@ -113,21 +161,39 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T
 }
 
+async function call<T>(path: string, init?: RequestInit): Promise<T> {
+  try {
+    return await once<T>(path, init, { timeoutMs: CALL_TIMEOUT_MS })
+  } catch (e) {
+    if (!isRetryable(e, true)) throw e
+    await sleep(RETRY_DELAY_MS)
+    return once<T>(path, init, { timeoutMs: CALL_TIMEOUT_MS })
+  }
+}
+
 /** Server components use the same client, with Next's revalidation window.
  *  A dead API must render as an honest failure state, never a 500 page. */
 async function read<T>(path: string, revalidate = 10): Promise<T> {
-  let res: Response
   try {
-    res = await fetch(`${BASE}/v1${path}`, { next: { revalidate } })
-  } catch {
-    throw new ApiError("network", "Kitty's index is unreachable right now.", 0)
+    return await once<T>(path, undefined, { revalidate, timeoutMs: READ_TIMEOUT_MS })
+  } catch (e) {
+    if (!isRetryable(e, false)) throw e
+    await sleep(RETRY_DELAY_MS)
+    return once<T>(path, undefined, { revalidate, timeoutMs: READ_TIMEOUT_MS })
   }
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    const e = body?.error ?? {}
-    throw new ApiError(e.code ?? "unknown", e.message ?? "Something went wrong.", res.status)
-  }
-  return (await res.json()) as T
+}
+
+/** Pull a suspended machine out of its snapshot while the reader is still on the
+ *  first screen, so their first tap does not pay for the wake-up. Fire and forget:
+ *  if it fails, the call it was warming retries on its own. `/ready` is the cheap
+ *  probe on purpose — it does no chain read, so warming costs the indexer nothing. */
+export function wake(): void {
+  if (typeof window === "undefined") return
+  void fetch(`${BASE}/v1/ready`, {
+    cache: "no-store",
+    keepalive: true,
+    signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
+  }).catch(() => {})
 }
 
 export const api = {
